@@ -104,6 +104,17 @@ class OrderItems(models.Model):
 	order = models.ForeignKey(Order, on_delete = models.CASCADE)
 	item = models.ForeignKey(StoreItem, on_delete = models.CASCADE)
 	quantity = models.PositiveIntegerField()
+	processed = models.BooleanField(default=False)
+	added = models.BooleanField(default=False)
+
+	def clean(self):
+		if self.added == True and self.processed == False:
+			raise ValidationError('Start Time should be before End Time')
+		return super().clean()
+
+
+
+
 
 
 
