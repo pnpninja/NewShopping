@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from phone_field import PhoneField
+from phonenumber_field.modelfields import PhoneNumberField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db.models import Q, F
@@ -10,6 +10,20 @@ from decimal import Decimal
 class CustomUser(AbstractUser):
 	pass
 	# add additional fields in here
+	#user = models.OneToOneField(CustomUser, on_delete = models.CASCADE)
+	CUSTOMER = 'CU'
+	MERCHANT = 'MR'
+	ROLETYPE_CHOICES = (
+		(CUSTOMER,'Customer'),
+		(MERCHANT,'Merchant')
+	)
+	role = models.CharField(
+		max_length = 10,
+		choices=ROLETYPE_CHOICES,
+		default='CUSTOMER'
+	)
+	phoneNumber = PhoneNumberField(blank=True, help_text='Phone number')
+	isRegistrationDone = models.BooleanField(default=False)
 
 class State(models.Model):
 	name = models.CharField(max_length=50)
@@ -24,29 +38,13 @@ class Address(models.Model):
 	zipcode = models.PositiveIntegerField(error_messages={'invalid':'Please enter a valid ZIP Code'})
 	state = models.ForeignKey(State, on_delete = models.CASCADE,error_messages={'invalid':'Please choose valid state'} )
 
-class AppUser(models.Model):
-	user = models.OneToOneField(CustomUser, on_delete = models.CASCADE)
-	CUSTOMER = 'CU'
-	MERCHANT = 'MR'
-	ROLETYPE_CHOICES = (
-		(CUSTOMER,'Customer'),
-		(MERCHANT,'Merchant')
-	)
-	role = models.CharField(
-		max_length = 2,
-		choices=ROLETYPE_CHOICES,
-		default='CUSTOMER'
-	)
-	phoneNumber = PhoneField(blank=True, help_text='Phone number')
-	isRegistrationDone = models.BooleanField(default=False)
-
 class Store(models.Model):
 	store_id = models.AutoField(primary_key=True)
 	owner = models.ForeignKey(CustomUser, on_delete = models.CASCADE)
 	name = models.CharField(max_length = 75)
 	description = models.TextField(blank = True)
 	logo = models.ImageField(upload_to ='store/')
-	contactNumber = PhoneField(blank=True, help_text='Contact number')
+	contactNumber = PhoneNumberField(blank=True, help_text='Contact number')
 	start = models.TimeField(auto_now = False, auto_now_add = False)
 	end = models.TimeField(auto_now = False, auto_now_add = False)
 	sundayOpen = models.BooleanField(default = False)

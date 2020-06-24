@@ -38,11 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'rest_framework',
+    'rest_framework.authtoken',
     'allauth', # new
     'allauth.account', # new
     'allauth.socialaccount', # new
     'allauth.socialaccount.providers.google',
     'phone_field',
+    'phonenumber_field',
     'users',
     'pages'
 ]
@@ -140,3 +143,8 @@ SITE_ID = 1
 
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES':[
+    'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly']
+}
