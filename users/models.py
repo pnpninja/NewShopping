@@ -5,7 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db.models import Q, F
 from decimal import Decimal
-
+from django.utils.safestring import mark_safe
 # Create your models here.
 class CustomUser(AbstractUser):
 	pass
@@ -41,19 +41,24 @@ class Address(models.Model):
 class Store(models.Model):
 	store_id = models.AutoField(primary_key=True)
 	owner = models.ForeignKey(CustomUser, on_delete = models.CASCADE)
-	name = models.CharField(max_length = 75)
-	description = models.TextField(blank = True)
-	logo = models.ImageField(upload_to ='store/')
+	name = models.CharField(max_length=75)
+	description = models.TextField(blank=True)
+	logo = models.ImageField(upload_to='store/')
 	contactNumber = PhoneNumberField(blank=True, help_text='Contact number')
-	start = models.TimeField(auto_now = False, auto_now_add = False)
-	end = models.TimeField(auto_now = False, auto_now_add = False)
-	sundayOpen = models.BooleanField(default = False)
-	mondayOpen = models.BooleanField(default = False) 
-	tuesdayOpen = models.BooleanField(default = False) 
-	wednesdayOpen = models.BooleanField(default = False) 
-	thursdayOpen = models.BooleanField(default = False) 
-	fridayOpen = models.BooleanField(default = False) 
-	saturdayOpen = models.BooleanField(default = False)
+	start = models.TimeField(auto_now=False, auto_now_add=False)
+	end = models.TimeField(auto_now=False, auto_now_add=False)
+	sundayOpen = models.BooleanField(default=False)
+	mondayOpen = models.BooleanField(default=False)
+	tuesdayOpen = models.BooleanField(default=False)
+	wednesdayOpen = models.BooleanField(default=False)
+	thursdayOpen = models.BooleanField(default=False)
+	fridayOpen = models.BooleanField(default=False)
+	saturdayOpen = models.BooleanField(default=False)
+
+	def image_tag(self):
+		from django.utils.html import escape
+		return mark_safe('<img src="{}" width="150" height="150" />'.format(self.url()))
+	image_tag.short_description = 'Image'
 
 	def clean(self):
 		if self.start > self.end:

@@ -1,11 +1,8 @@
 from django.urls import include,path
-#from .views import CustomUserListView, CustomUserDetailView, PersonalUserDetailView
-from .views import PersonalUserDetailView
+from .views_user import PersonalUserDetailView, StoreDetailView
 
 urlpatterns = [
-	#path('',CustomUserListView.as_view()),
-	#path('<pk>',CustomUserDetailView.as_view()),
-	path('userdetails', PersonalUserDetailView.as_view(), name='hello'),
-#	path('userdetails')
-
+	path('users/userdetails', PersonalUserDetailView.as_view(), name='hello'),
+	path('stores/<int:store_id>', StoreDetailView.as_view(), name='hello2'),
+	path('stores/', StoreDetailView.as_view(), name='hello2'),
 ]

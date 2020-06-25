@@ -1,12 +1,31 @@
 from rest_framework import serializers
-from users.models import CustomUser
+from users.models import CustomUser, Store
 from phonenumber_field.serializerfields import PhoneNumberField
 
 class CustomUserSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = CustomUser
-		fields = ('username','email','first_name','last_name','phoneNumber','isRegistrationDone','role')
+		fields = ('username','email','first_name','last_name','phoneNumber','isRegistrationDone','role','id')
 		read_only_fields = ['email']
+
+class StoreSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Store
+		fields = ('store_id','owner','name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+		read_only_fields = ['store_id']
+
+class UpdateStoreSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Store
+		fields = ('name','description','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+
+class UpdateStoreSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Store
+		fields = ('name','description','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+
+class UpdateStoreImageSerializer(serializers.Serializer):
+	logo = serializers.ImageField(allow_empty_file=False)
 
 class UpdateUserSerializer(serializers.Serializer):
 	first_name = serializers.CharField(max_length=30)
