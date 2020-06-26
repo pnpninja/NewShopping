@@ -19,10 +19,10 @@ class UpdateStoreSerializer(serializers.ModelSerializer):
 		model = Store
 		fields = ('name','description','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
 
-class UpdateStoreSerializer(serializers.ModelSerializer):
+class CreateStoreSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Store
-		fields = ('name','description','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+		fields = ('name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
 
 class UpdateStoreImageSerializer(serializers.Serializer):
 	logo = serializers.ImageField(allow_empty_file=False)

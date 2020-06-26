@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FileUploadParser
 from users.models import CustomUser, Store
-from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer
+from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer
 from rest_framework import status
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+import json
 from rest_framework.decorators import parser_classes
 from rest_framework.authtoken.models import Token
 from braces.views import CsrfExemptMixin
@@ -45,8 +46,9 @@ class PersonalUserDetailView(APIView):
 			return Response(CustomUserSerializer(userFromToken).data, status=status.HTTP_200_OK)
 
 class StoreDetailView(APIView):
+	parser_classes = (MultiPartParser, FormParser, JSONParser)
 	permission_classes = (IsAuthenticated,)
-	def get(self, request,store_id=None):
+	def get(self, request, store_id=None):
 		if store_id == None:
 			store_data = Store.objects.all()
 			return Response(StoreSerializer(store_data,many=True).data)
@@ -57,7 +59,7 @@ class StoreDetailView(APIView):
 			except:
 				return Response(status=status.HTTP_404_NOT_FOUND)
 
-	def post(self, request,store_id=None):
+	def put(self, request, store_id=None):
 		if store_id == None:
 			return Response(status=status.HTTP_403_FORBIDDEN)
 		else:
@@ -86,6 +88,39 @@ class StoreDetailView(APIView):
 						return Response(status=status.HTTP_200_OK)
 			except:
 				return Response(status=status.HTTP_404_NOT_FOUND)
+
+	def post(self, request,store_id=None):
+		usser = CustomUser.objects.get(email=request.user.email)
+		if(usser.role != "MERCHANT"):
+			return Response({"message":"That's an illegal move"},status=status.HTTP_403_FORBIDDEN)
+		try:
+			objj = UpdateStoreSerializer(data=json.loads(request.POST['data']))
+			if not objj.is_valid():
+				print(UpdateStoreSerializer.errors)
+				return Response({"message": "That's an illegal move"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+			img = request.FILES['logo']
+			newStore = Store()
+			newStore.name = objj.data['name']
+			newStore.description = objj.data['description']
+			newStore.contactNumber = objj.data['contactNumber']
+			newStore.start = objj.data['start']
+			newStore.end = objj.data['end']
+			newStore.sundayOpen = objj.data['sundayOpen']
+			newStore.mondayOpen = objj.data['mondayOpen']
+			newStore.tuesdayOpen = objj.data['tuesdayOpen']
+			newStore.wednesdayOpen = objj.data['wednesdayOpen']
+			newStore.thursdayOpen = objj.data['thursdayOpen']
+			newStore.fridayOpen = objj.data['fridayOpen']
+			newStore.saturdayOpen = objj.data['saturdayOpen']
+			newStore.owner = request.user
+			newStore.logo = img
+			newStore.save()
+			return Response(status=status.HTTP_200_OK)
+		except Exception as e:
+			print(e)
+			return Response({"message":"Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 class StoreImageChangeView(APIView):
 	parser_classes = (MultiPartParser,)
