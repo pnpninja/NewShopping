@@ -106,6 +106,7 @@ class OrderItems(models.Model):
 	orderItem_id = models.AutoField(primary_key=True)
 	order = models.ForeignKey(Order, on_delete = models.CASCADE)
 	item = models.ForeignKey(StoreItem, on_delete = models.CASCADE)
+	price = models.DecimalField(decimal_places=2, max_digits=12, validators=[MinValueValidator(Decimal('0.01'))])
 	quantity = models.PositiveIntegerField()
 	processed = models.BooleanField(default=False)
 	added = models.BooleanField(default=False)
