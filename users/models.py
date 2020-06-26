@@ -78,7 +78,7 @@ class StoreItem(models.Model):
 	name = models.CharField(max_length = 75)
 	description = models.TextField(blank = True)
 	price = models.DecimalField(decimal_places=2, max_digits=12, validators=[MinValueValidator(Decimal('0.01'))])
-	logo = models.ImageField(upload_to ='item/')
+	logo = models.ImageField(upload_to ='store/')
 
 
 class Cart(models.Model):

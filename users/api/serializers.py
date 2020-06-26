@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import CustomUser, Store
+from users.models import CustomUser, Store, StoreItem
 from phonenumber_field.serializerfields import PhoneNumberField
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -23,6 +23,16 @@ class CreateStoreSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Store
 		fields = ('name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+
+class StoreItemSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = StoreItem
+		fields = ('item_id','store','name','description','price','logo')
+
+class CreateStoreItemSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = StoreItem
+		fields = ('name','description','price',)
 
 class UpdateStoreImageSerializer(serializers.Serializer):
 	logo = serializers.ImageField(allow_empty_file=False)

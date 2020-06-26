@@ -4,8 +4,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FileUploadParser
-from users.models import CustomUser, Store
-from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer
+from users.models import CustomUser, Store, StoreItem
+from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer, StoreItemSerializer, CreateStoreItemSerializer
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import json
@@ -140,4 +140,110 @@ class StoreImageChangeView(APIView):
 					return Response({"message": "OK"}, status=status.HTTP_200_OK)
 			except:
 				return Response({"message":"Store ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
+
+class StoreItemImageChangeView(APIView):
+	parser_classes = (MultiPartParser,)
+	permission_classes = (IsAuthenticated,)
+	def post(self, request,storeitem_id=None):
+		if(storeitem_id==None):
+			return Response({"message":"That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
+		else:
+			try:
+				storeData = StoreItem.objects.get(storeitem_id=storeitem_id)
+				if(storeData.store.owner.id != request.user.id):
+					return Response({"message":"User doesn't own the store"}, status=status.HTTP_403_FORBIDDEN)
+				else:
+					tt = request.FILES['logo']
+					storeData.logo = tt
+					storeData.save()
+					return Response({"message": "OK"}, status=status.HTTP_200_OK)
+			except:
+				return Response({"message":"Store Item ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
+
+
+class StoreItemsView(APIView):
+	permission_classes = (IsAuthenticated,)
+	def get(self, request,store_id=None):
+		if store_id==None:
+			return Response({"message": "That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
+		else:
+			try:
+				store = Store.objects.get(store_id=store_id)
+				storeitems = StoreItem.objects.filter(store=store)
+				return Response(StoreItemSerializer(storeitems,many=True).data)
+			except Store.DoesNotExist:
+				return Response({"message": "Store ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
+			except:
+				return Response({"message": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CreateOrUpdateStoreItemsView(APIView):
+	parser_classes = (MultiPartParser, FormParser, JSONParser)
+	permission_classes = (IsAuthenticated,)
+	#Get a particular item
+	def get(self, request,store_id=None,storeitem_id=None):
+		if store_id==None or storeitem_id==None:
+			return Response({"message": "That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
+		else:
+			try:
+				store = Store.objects.get(store_id=store_id)
+				storeitem = StoreItem.objects.filter(store=store,storeitem_id=storeitem_id)
+				return Response(StoreItemSerializer(storeitem).data)
+			except Store.DoesNotExist:
+				return Response({"message": "Store ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
+			except StoreItem.DoesNotExist:
+				return Response({"message": "Store Item ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
+			except:
+				return Response({"message": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+	#Create a new item in store
+	def post(self, request,store_id=None,storeitem_id=None):
+		if store_id==None:
+			return Response({"message": "Not possible"}, status=status.HTTP_403_FORBIDDEN)
+		else:
+			#Verify ownership
+			try:
+				store = Store.objects.get(store_id=store_id)
+				if not store.owner.id == request.user.id:
+					return Response({"message": "You do not own the store"}, status=status.HTTP_404_NOT_FOUND)
+				else:
+					#Validate store item object
+					objj = CreateStoreItemSerializer(data=json.loads(request.POST['data']))
+					if not objj.is_valid():
+						print(UpdateStoreSerializer.errors)
+						return Response({"message": "That's an illegal move"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+					else:
+						new_store_object = StoreItem()
+						new_store_object.store = store
+						new_store_object.logo = request.FILES['logo']
+						new_store_object.name = objj.data['name']
+						new_store_object.description = objj.data['description']
+						new_store_object.price = objj.data['price']
+						new_store_object.save()
+						return Response(status=status.HTTP_200_OK)
+			except Store.DoesNotExist:
+				return Response({"message": "Store ID Doesn't exist"}, status=status.HTTP_404_NOT_FOUND)
+
+	# Edit an item item in store
+	def put(self, request, store_id=None, storeitem_id=None):
+			if store_id == None or storeitem_id==None:
+				return Response({"message": "Not possible"}, status=status.HTTP_403_FORBIDDEN)
+			else:
+				# Verify ownership
+				try:
+					storeitem = StoreItem.objects.get(storeitem_id=storeitem_id)
+					if not storeitem.store.owner.id == request.user.id:
+						return Response({"message": "You don't own this"}, status=status.HTTP_403_FORBIDDEN)
+					else:
+						objj = CreateStoreItemSerializer(data=request.data)
+						if not objj.is_valid():
+							print(objj.errors)
+							return Response({"message": "Bad data"}, status=status.HTTP_403_FORBIDDEN)
+						else:
+							storeitem.name = objj.data['name']
+							storeitem.description = objj.data['description']
+							storeitem.price = objj.data['price']
+							storeitem.save()
+							return Response(status=status.HTTP_200_OK)
+				except StoreItem.DoesNotExist:
+					return Response({"message": "Store Not Found"}, status=status.HTTP_403_FORBIDDEN)
 
