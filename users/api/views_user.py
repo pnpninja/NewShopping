@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import FileUploadParser
 from users.models import CustomUser, Store
 from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer
 from rest_framework import status
@@ -86,7 +87,22 @@ class StoreDetailView(APIView):
 			except:
 				return Response(status=status.HTTP_404_NOT_FOUND)
 
-
-
-
+class StoreImageChangeView(APIView):
+	parser_classes = (MultiPartParser,)
+	permission_classes = (IsAuthenticated,)
+	def post(self, request,store_id=None):
+		if(store_id==None):
+			return Response({"message":"That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
+		else:
+			try:
+				storeData = Store.objects.get(store_id=store_id)
+				if(storeData.owner.id != request.user.id):
+					return Response({"message":"User doesn't own the store"}, status=status.HTTP_403_FORBIDDEN)
+				else:
+					tt = request.FILES['logo']
+					storeData.logo = tt
+					storeData.save()
+					return Response({"message": "OK"}, status=status.HTTP_200_OK)
+			except:
+				return Response({"message":"Store ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
 
