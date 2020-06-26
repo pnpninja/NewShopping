@@ -22,6 +22,11 @@ training_data=interactions.reset_index()
 training_data.index.names = ['plays']
 training_data=pd.melt(training_data, id_vars=['userId'],value_name='plays').dropna()
 
+rec= tc.recommender.item_similarity_recommender.create(tc.SFrame(training_data), user_id='userId', item_id='artistId', target='plays', verbose=False)
+
+dummy_user=['00d56a125a04426daec7cf81d61d6bd7e7364a86']
+print(rec.recommend(users=dummy_user, verbose=False))
+
 
 
 
