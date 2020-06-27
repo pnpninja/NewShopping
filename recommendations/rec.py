@@ -25,9 +25,16 @@ training_data=pd.melt(training_data, id_vars=['userId'],value_name='plays').drop
 rec= tc.recommender.item_similarity_recommender.create(tc.SFrame(training_data), user_id='userId', item_id='artistId', target='plays', verbose=False)
 
 dummy_user=['00d56a125a04426daec7cf81d61d6bd7e7364a86']
-print(rec.recommend(users=dummy_user, verbose=False))
+dummy_rec=rec.recommend(users=dummy_user, k=10, verbose=False)
 
+# map artist names
+artistId_to_artistName={}
+artists=orig_data.artistId.unique()
+for a in artists:
+  artistId_to_artistName[a]=orig_data.loc[orig_data['artistId']==a, 'artist'].unique()[0]
 
+dummy_rec_artists=[artistId_to_artistName[a] for a in dummy_rec["artistId"]]
+print(dummy_rec_artists)
 
 
 
