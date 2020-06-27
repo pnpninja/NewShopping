@@ -4,8 +4,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FileUploadParser
-from users.models import CustomUser, Store, StoreItem
-from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer, StoreItemSerializer, CreateStoreItemSerializer
+from users.models import CustomUser, Store, StoreItem, Cart, CartItems
+from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer, StoreItemSerializer, CreateStoreItemSerializer, CartItemSerializer
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import json
@@ -246,4 +246,39 @@ class CreateOrUpdateStoreItemsView(APIView):
 							return Response(status=status.HTTP_200_OK)
 				except StoreItem.DoesNotExist:
 					return Response({"message": "Store Not Found"}, status=status.HTTP_403_FORBIDDEN)
+
+
+class CartItemsView(APIView):
+	permission_classes = (IsAuthenticated,)
+	def post(self, request):
+		#Validate incoming request
+		#Validate Body
+		cartAddObj = CartItemSerializer(data=request.data)
+		if not cartAddObj.is_valid():
+			return Response(cartAddObj.errors, status=status.HTTP_400_BAD_REQUEST)
+		else:
+			storeid = cartAddObj.data['storeID']
+			productid = cartAddObj.data['productID']
+			try:
+				store = Store.objects.get(store_id=storeid)
+				product = StoreItem.objects.get(item_id=productid)
+				if product.store.store_id != store.id:
+					return Response({"message":"Product isn't owned by store"})
+				else:
+					usser = CustomUser.objects.get(id=request.user.id)
+					cart = Cart.objects.get_or_create(user=usser, store=store)[0]
+					cartItem = CartItems.objects.get_or_create(cart=cart, item=product)[0]
+					cartItem.quantity = cartAddObj.data['quantity']
+					cartItem.save()
+					if(cartItem.quantity == 0):
+						cartItem.delete()
+					return Response(status=status.HTTP_200_OK)
+			except Store.DoesNotExist:
+				return Response({"message":"Store doesn't exist"})
+			except StoreItem.DoesNotExist:
+				return Response({"message":"Store doesn't exist"})
+
+
+
+
 

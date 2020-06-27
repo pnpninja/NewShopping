@@ -94,7 +94,7 @@ class CartItems(models.Model):
 	cartItem_id = models.AutoField(primary_key=True)
 	cart = models.ForeignKey(Cart, on_delete = models.CASCADE)
 	item = models.ForeignKey(StoreItem, on_delete = models.CASCADE)
-	quantity = models.PositiveIntegerField()
+	quantity = models.PositiveIntegerField(default=0)
 
 class Order(models.Model):
 	order_id = models.AutoField(primary_key=True)

@@ -49,3 +49,7 @@ class UpdateUserSerializer(serializers.Serializer):
 	)
 	role = serializers.ChoiceField(choices=ROLETYPE_CHOICES)
 
+class CartItemSerializer(serializers.Serializer):
+	storeID = serializers.IntegerField(allow_null=False)
+	productID = serializers.IntegerField(allow_null=False)
+	quantity = serializers.IntegerField(min_value=0, max_value=10)
