@@ -4,8 +4,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FileUploadParser
-from users.models import CustomUser, Store, StoreItem, Cart, CartItems
-from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer, StoreItemSerializer, CreateStoreItemSerializer, CartItemSerializer
+from users.models import CustomUser, Store, StoreItem, Cart, CartItems, Order, OrderItems
+from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerializer, UpdateStoreSerializer, CreateStoreSerializer, StoreItemSerializer, CreateStoreItemSerializer, CartItemViewSerializer, CartItemSerializer, CartRequestSerializer
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import json
@@ -274,10 +274,60 @@ class CartItemsView(APIView):
 						cartItem.delete()
 					return Response(status=status.HTTP_200_OK)
 			except Store.DoesNotExist:
-				return Response({"message":"Store doesn't exist"})
+				return Response({"message":"Store doesn't exist"},status=status.HTTP_403_FORBIDDEN)
 			except StoreItem.DoesNotExist:
-				return Response({"message":"Store doesn't exist"})
+				return Response({"message":"Store doesn't exist"},status=status.HTTP_403_FORBIDDEN)
+			except Exception as e:
+				print(e)
+				return Response({"message":"Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+	def get(self, request):
+		json = CartRequestSerializer(data=request.data)
+		if not json.is_valid():
+			return Response({"message":"Invalid Data"},status=status.HTTP_400_BAD_REQUEST)
+		else:
+			try:
+				usser = CustomUser.objects.get(id=request.user.id)
+				store = Store.objects.get(store_id=json.data['storeID'])
+				cart = Cart.objects.get(user=usser, store=store)
+				cartItems = CartItems.objects.filter(cart=cart)
+				return Response(CartItemViewSerializer(cartItems,many=True).data,status=status.HTTP_200_OK)
+			except Store.DoesNotExist:
+				return Response({"message":"Store Does not exist"},status=status.HTTP_400_BAD_REQUEST)
+			except Cart.DoesNotExist:
+				return Response({"message":"Cart Does not exist"},status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrderProcess(APIView):
+	def post(self, request):
+		storeID = CartRequestSerializer(data=request.data)
+		try:
+			store = Store.objects.get(store_id=storeID)
+			usser = CustomUser.objects.get(id=request.user.id)
+			cart = Cart.objects.get(store=store, user=usser)
+			cartitems = CartItems.objects.filter(cart=cart)
+			if len(cartitems) == 0:
+				return Response({"message":"No items!"},status=status.HTTP_403_FORBIDDEN)
+			else:
+				order = Order()
+				order.store = store
+				order.user = usser
+				order.save()
+				for cartitem in cartitems:
+					orderitem = OrderItems()
+					orderitem.order = order
+					orderitem.item = cartitem.item
+					orderitem.quantity = cartitem.quantity
+					orderitem.processed = False
+					orderitem.added = False
+					orderitem.price = cartitem.item.price
+					orderitem.save()
+				return Response({"message":"Done"},status=status.HTTP_200_OK)
+		except Store.DoesNotExist:
+			return Response({"message":"Store doesn't exist"},status=status.HTTP_400_BAD_REQUEST)
+		except Cart.DoesNotExist:
+			return Response({"message":"Store doesn't exist"},status=status.HTTP_400_BAD_REQUEST)
 
 
 
