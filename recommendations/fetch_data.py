@@ -1,6 +1,8 @@
 import pandas as pd
+from users.models import CustomUser,Order, OrderItems, StoreItem
 
 user_to_purchase_counts={}
+print("Users Received")
 for user in CustomUser.objects.filter():
   store_item_orders={}
   orders=Order.objects.filter(user=user)
@@ -15,12 +17,12 @@ for user in CustomUser.objects.filter():
   
 data_list=[]
 for user in user_to_purchase_counts.keys():
-  for item in user_to_purchase_count[user].keys():
+  for item in user_to_purchase_counts[user].keys():
     row=[]
     row.append(user)
     row.append(item)
-    row.append(user_to_purchase_count[user][item])
+    row.append(user_to_purchase_counts[user][item])
     data_list.append(row)
 
-data= pd.DataFrame(data_list, columns = ['user_id', 'item_id', 'purchase_count'])
-  
+data=pd.DataFrame(data_list, columns = ['user_id', 'item_id', 'purchase_count'])
+print(data)
