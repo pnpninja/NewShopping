@@ -2,9 +2,10 @@ import pandas as pd
 import numpy as np
 import turicreate as tc
 
+# helper function for providing weighted results from recommenders
 def interleave(similarity_recommended_items, popularity_recommended_items):
   result=[]
-  ratio=int(similarity_recommended_items/popularity_recommended_items)
+  ratio=int(len(similarity_recommended_items)/len(popularity_recommended_items))
   similarity_index=0
   popularity_index=0
   current=1
@@ -55,12 +56,12 @@ def get_best_k_items(data, user_column, item_column, freq_column, k, user_id):
   training_data=interactions.reset_index()
   training_data.index.names = [freq_column]
   training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
-
+  user_id=[user_id]
   recommender= tc.recommender.item_similarity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=item_column, target=freq_column, verbose=False)
   
   recommendation=recommender.recommend(users=user_id, k=k, verbose=False)
   
-  recommended_items=[ a for a in recommendation[item_column]
+  recommended_items=[ a for a in recommendation[item_column]]
   
   return recommended_items
   
@@ -93,12 +94,12 @@ def get_best_k_merchants(data, user_column, merchant_column, freq_column, k, use
   training_data=interactions.reset_index()
   training_data.index.names = [freq_column]
   training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
+  user_id=[user_id]
   
   popularity_weight=0.25
-  popularity_k= int(popularity_weight*k)
-  similarity_k= k-popularity_k;
+  popularity_k= max(1,int(popularity_weight*k))
+  similarity_k= max(0,k-popularity_k);
   
-
   similarity_recommender= tc.recommender.item_similarity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=merchant_column, target=freq_column, verbose=False)
 
   similarity_recommendation=similarity_recommender.recommend(users=user_id, k=similarity_k, verbose=False)
