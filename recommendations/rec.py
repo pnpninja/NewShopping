@@ -69,6 +69,7 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
   
   return popularity_recommended_items+random_recommended_items
 
+
 """
 Get best k product recommendations for a user.
 
@@ -86,6 +87,10 @@ Returns
     recommended_items  -- list of k item_ids as recommendations
 """
 def get_best_k_items(data, user_column, item_column, freq_column, k, user_id):
+  
+  # deal with coldstarts
+  if check_coldstart(data, user_column, item_column, freq_column, k, user_id):
+    return get_coldstart_recommendation(data, user_column, item_column, freq_column, k, user_id)
   # user-item interactions table
   interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=item_column)
   
@@ -122,8 +127,12 @@ Returns
 --------------------
    recommended_items  -- list of k merchant_ids as recommendations
 """
-
 def get_best_k_merchants(data, user_column, merchant_column, freq_column, k, user_id):
+
+  # deal with coldstarts
+  if check_coldstart(data, user_column, merchant_column, freq_column, k, user_id):
+    return get_coldstart_recommendation(data, user_column, merchant_column, freq_column, k, user_id)
+  
   # user-merchant interactions table
   interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=merchant_column)
 
@@ -155,6 +164,8 @@ def get_best_k_merchants(data, user_column, merchant_column, freq_column, k, use
 
   return recommended_items
   
+
+
 def main():
   # sample usage
   data= pd.read_csv('music_data.csv', usecols=['userId','artistId','plays'], encoding= 'unicode_escape')
