@@ -1,5 +1,7 @@
 import pandas as pd
 from users.models import CustomUser,Order, OrderItems, StoreItem
+import json
+# add import statement here
 
 user_to_purchase_counts={}
 print("Users Received")
@@ -33,6 +35,10 @@ k=k #TODO: Fix this
 
 recommendations= get_best_k_items(data, user_column=user_column, item_column=item_column, freq_column=freq_column, k=k, user_id=user_id)
 
+rec_dict={};
+rec_dict["recommendations"]=recommendations
+response_recommendations=json.dumps(rec_dict)
+
 merchant_user_to_purchase_counts={}
 for user in CustomUser.objects.filter():
   store_visits={}
@@ -62,3 +68,7 @@ user_id=user_id #TODO: Fix this
 k=k #TODO: Fix this
 
 merchant_recommendations= get_best_k_items(data, user_column=user_column, item_column=item_column, freq_column=freq_column, k=k, user_id=user_id)
+
+merchant_rec_dict={};
+merchant_rec_dict["recommendations"]=merchant_recommendations
+response_merchant_recommendations=json.dumps(merchant_rec_dict)
