@@ -65,6 +65,22 @@ def get_best_k_items(data, user_column, item_column, freq_column, k, user_id):
   return recommended_items
   
 
+"""
+Get best k merchant recommendations for a user.
+
+Parameters
+--------------------
+   data             -- pandas dataframe, consisting of purchase/visit count for every (merchant, user) pair in a particular location
+   user_column      -- string, name of the column in the dataframe corresponding to unique user_ids
+   merchant_column      -- string, name of the column in the dataframe corresponding to unique merchant_ids
+   freq_column      -- string, name of the column in the dataframe corresponding to purchase/visit count
+   k                -- int, number of recommendations
+   user_id          -- string, user for whom recommendations are to be made
+
+Returns
+--------------------
+   recommended_items  -- list of k merchant_ids as recommendations
+"""
 
 def get_best_k_merchants(data, user_column, merchant_column, freq_column, k, user_id):
   # user-merchant interactions table
