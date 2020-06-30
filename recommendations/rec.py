@@ -50,7 +50,7 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
   training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
   user_id=[user_id]
   
-  k=min(k,data[product_column].unique())
+  k=min(k,len(data[product_column].unique()))
   
   popularity_k= max(1,int(k/2)+1)
   popularity_recommender= tc.recommender.popularity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=product_column, target=freq_column, verbose=False)
@@ -64,7 +64,7 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
     if product not in popularity_recommended_items:
       remaining_items.append(product)
   
-  remaining_items=np.random.shuffle(np.array(remaining_items))
+  np.random.shuffle(np.array(remaining_items))
   random_recommended_items= remaining_items[0:random_k]
   
   return popularity_recommended_items+random_recommended_items
@@ -175,7 +175,7 @@ def main():
   artist_column='artistId'
   plays_column='plays'
   user_id=data[user_column].unique()[0] # example user
-  recommendations= get_best_k_items(data, user_column=user_column, item_column=artist_column, freq_column=plays_column, k=100000, user_id=user_id)
+  recommendations= get_best_k_items(data, user_column=user_column, item_column=artist_column, freq_column=plays_column, k=10, user_id=user_id)
   
   # map artist names
   artistId_to_artistName={}
