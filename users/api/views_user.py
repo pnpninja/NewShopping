@@ -21,13 +21,25 @@ from braces.views import CsrfExemptMixin
 #	queryset = CustomUser.objects.all()
 #	serializer_class = CustomUserSerializer
 
+#Endpoint - /api/users/userdetails
 class PersonalUserDetailView(APIView):
 	permission_classes = (IsAuthenticated,)
 
+	#Test Status - Complete
 	def get(self, request):
 		user = request.user
 		return Response(CustomUserSerializer(user).data)
 
+	#Test Status - Complete
+	#Body (example) =
+	'''
+	{
+		"first_name": "Srishti",
+    	"last_name": "Ghorpade",
+    	"phoneNumber": "+16316275218", (meticulous care has been taken care in validating it)
+    	"role": "CU" (or "MR")
+	}
+	'''
 	def post(self, request):
 		print(request.data)
 		userFromToken = CustomUser.objects.get(email=request.user.email)
@@ -48,6 +60,7 @@ class PersonalUserDetailView(APIView):
 class StoreDetailView(APIView):
 	parser_classes = (MultiPartParser, FormParser, JSONParser)
 	permission_classes = (IsAuthenticated,)
+	#Test Status - Complete
 	def get(self, request, store_id=None):
 		if store_id == None:
 			store_data = Store.objects.all()
@@ -59,6 +72,23 @@ class StoreDetailView(APIView):
 			except:
 				return Response(status=status.HTTP_404_NOT_FOUND)
 
+	#Test Status - Complete
+	'''
+	{
+    	"name": "Sample StoreUpd",
+    	"description": "My Update",
+    	"contactNumber": "+16316275219", 
+    	"start": "05:00:00",
+    	"end": "21:00:00",
+    	"sundayOpen": false,
+    	"mondayOpen": true,
+    	"tuesdayOpen": true,
+    	"wednesdayOpen": true,
+    	"thursdayOpen": true,
+    	"fridayOpen": true,
+    	"saturdayOpen": false
+	}	
+	'''
 	def put(self, request, store_id=None):
 		if store_id == None:
 			return Response(status=status.HTTP_403_FORBIDDEN)
@@ -70,7 +100,8 @@ class StoreDetailView(APIView):
 				else:
 					store_data_new = UpdateStoreSerializer(data=request.data)
 					if not store_data_new.is_valid():
-						return Response(UpdateStoreSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+						print(store_data_new.errors)
+						return Response(store_data_new.errors, status=status.HTTP_400_BAD_REQUEST)
 					else:
 						store_data.name = store_data_new.data['name']
 						store_data.description = store_data_new.data['description']
@@ -89,6 +120,26 @@ class StoreDetailView(APIView):
 			except:
 				return Response(status=status.HTTP_404_NOT_FOUND)
 
+	#Test Status - Complete
+	#Request - Form Data
+	#logo - File - Choose Image of Store
+	#data - Details of store (Refer to UpdateStoreSerializer)
+	'''
+		{
+    	"name": "Sample StoreUpd",
+    	"description": "My Update",
+    	"contactNumber": "+16316275219",
+    	"start": "05:00:00",
+    	"end": "21:00:00",
+    	"sundayOpen": false,
+    	"mondayOpen": true,
+    	"tuesdayOpen": true,
+    	"wednesdayOpen": true,
+    	"thursdayOpen": true,
+    	"fridayOpen": true,
+    	"saturdayOpen": false
+	}
+	'''
 	def post(self, request,store_id=None):
 		usser = CustomUser.objects.get(email=request.user.email)
 		if(usser.role != "MERCHANT"):
@@ -121,8 +172,9 @@ class StoreDetailView(APIView):
 			return Response({"message":"Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 class StoreImageChangeView(APIView):
+	#Test Status - Complete
+	#Form Data - logo - file
 	parser_classes = (MultiPartParser,)
 	permission_classes = (IsAuthenticated,)
 	def post(self, request,store_id=None):
