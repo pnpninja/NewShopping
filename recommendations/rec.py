@@ -28,6 +28,17 @@ def interleave(similarity_recommended_items, popularity_recommended_items):
     popularity_index+=1
   
   return result
+  
+# helper function to check for potential coldstart issues
+def check_coldstart(data, user_column, product_column, freq_column, k, user_id):
+  if(len(data[product_column].unique())<k):
+    return True
+  if(len(data.loc[data[user_column]==user_id, product_column].unique())<int(k/3)):
+    return True
+  return False
+  
+def get_coldstart_recommendation(data, user_column, product_column, freq_column, k, user_id):
+  return []
 
 """
 Get best k product recommendations for a user.
@@ -96,7 +107,7 @@ def get_best_k_merchants(data, user_column, merchant_column, freq_column, k, use
   training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
   user_id=[user_id]
   
-  popularity_weight=0.25
+  popularity_weight=0.25 #heuristic
   popularity_k= max(1,int(popularity_weight*k))
   similarity_k= max(0,k-popularity_k);
   
@@ -124,7 +135,7 @@ def main():
   artist_column='artistId'
   plays_column='plays'
   user_id=data[user_column].unique()[0] # example user
-  recommendations= get_best_k_items(data, user_column=user_column, item_column=artist_column, freq_column=plays_column, k=10, user_id=user_id)
+  recommendations= get_best_k_items(data, user_column=user_column, item_column=artist_column, freq_column=plays_column, k=100000, user_id=user_id)
   
   # map artist names
   artistId_to_artistName={}
