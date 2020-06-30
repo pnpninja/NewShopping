@@ -34,6 +34,8 @@ for a in artists:
   artistId_to_artistName[a]=orig_data.loc[orig_data['artistId']==a, 'artist'].unique()[0]
 
 dummy_rec_artists=[artistId_to_artistName[a] for a in dummy_rec["artistId"]]
+#print(dummy_rec)
+#print("Recommended Artists")
 print(dummy_rec_artists)
 
 
