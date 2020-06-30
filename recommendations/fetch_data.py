@@ -1,10 +1,12 @@
 import pandas as pd
 from users.models import CustomUser,Order, OrderItems, StoreItem
 import json
-# add import statement here
+from rec import * #TODO: fix this with correct path?
 
+#################################
+# Item recommendation API logic #
+#################################
 user_to_purchase_counts={}
-print("Users Received")
 for user in CustomUser.objects.filter():
   store_item_orders={}
   orders=Order.objects.filter(user=user)
@@ -39,6 +41,11 @@ rec_dict={};
 rec_dict["recommendations"]=recommendations
 response_recommendations=json.dumps(rec_dict)
 
+
+
+##################################
+# Store recommendation API logic #
+##################################
 merchant_user_to_purchase_counts={}
 for user in CustomUser.objects.filter():
   store_visits={}
