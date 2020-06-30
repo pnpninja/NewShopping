@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import CustomUser, Store, StoreItem
+from users.models import CustomUser, Store, StoreItem, Cart, CartItems
 from phonenumber_field.serializerfields import PhoneNumberField
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -34,6 +34,7 @@ class CreateStoreItemSerializer(serializers.ModelSerializer):
 		model = StoreItem
 		fields = ('name','description','price',)
 
+
 class UpdateStoreImageSerializer(serializers.Serializer):
 	logo = serializers.ImageField(allow_empty_file=False)
 
@@ -49,3 +50,19 @@ class UpdateUserSerializer(serializers.Serializer):
 	)
 	role = serializers.ChoiceField(choices=ROLETYPE_CHOICES)
 
+
+class CartItemViewSerializer(serializers.ModelSerializer):
+	item = StoreItemSerializer()
+
+	class Meta:
+		model = CartItems
+		fields = ('cartItem_id','cart','item','quantity')
+
+
+class CartItemSerializer(serializers.Serializer):
+	storeID = serializers.IntegerField(allow_null=False)
+	productID = serializers.IntegerField(allow_null=False)
+	quantity = serializers.IntegerField(min_value=0, max_value=10)
+
+class CartRequestSerializer(serializers.Serializer):
+	storeID = serializers.IntegerField(allow_null=False)
