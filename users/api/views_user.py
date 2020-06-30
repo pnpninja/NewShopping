@@ -215,6 +215,7 @@ class StoreItemImageChangeView(APIView):
 
 class StoreItemsView(APIView):
 	permission_classes = (IsAuthenticated,)
+	#Test Status
 	def get(self, request,store_id=None):
 		if store_id==None:
 			return Response({"message": "That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
@@ -231,24 +232,72 @@ class StoreItemsView(APIView):
 class CreateOrUpdateStoreItemsView(APIView):
 	parser_classes = (MultiPartParser, FormParser, JSONParser)
 	permission_classes = (IsAuthenticated,)
+
 	#Get a particular item
+	#Test Status - Complete
 	def get(self, request,store_id=None,storeitem_id=None):
 		if store_id==None or storeitem_id==None:
 			return Response({"message": "That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
 		else:
 			try:
 				store = Store.objects.get(store_id=store_id)
-				storeitem = StoreItem.objects.filter(store=store,storeitem_id=storeitem_id)
-				return Response(StoreItemSerializer(storeitem).data)
+				storeitem = StoreItem.objects.filter(store=store,item_id=storeitem_id)[0]
+				return Response(StoreItemSerializer(storeitem).data,status=status.HTTP_200_OK)
 			except Store.DoesNotExist:
 				return Response({"message": "Store ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
 			except StoreItem.DoesNotExist:
 				return Response({"message": "Store Item ID Doesn't exist"}, status=status.HTTP_403_FORBIDDEN)
-			except:
+			except Exception as e:
+				print(e)
 				return Response({"message": "Internal Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+	# Edit an item item in store
+	# Test Status - Complete
+	'''
+		{
+    		"name": "SItem1",
+    		"description": "My New item",
+    		x"price": "20.10"
+		}
+	'''
+	def put(self, request, store_id=None, storeitem_id=None):
+			if store_id == None or storeitem_id==None:
+				return Response({"message": "Not possible"}, status=status.HTTP_403_FORBIDDEN)
+			else:
+				# Verify ownership
+				try:
+					storeitem = StoreItem.objects.get(item_id=storeitem_id)
+					if not storeitem.store.owner.id == request.user.id:
+						return Response({"message": "You don't own this"}, status=status.HTTP_403_FORBIDDEN)
+					else:
+						objj = CreateStoreItemSerializer(data=request.data)
+						if not objj.is_valid():
+							print(objj.errors)
+							return Response({"message": "Bad data"}, status=status.HTTP_403_FORBIDDEN)
+						else:
+							storeitem.name = objj.data['name']
+							storeitem.description = objj.data['description']
+							storeitem.price = objj.data['price']
+							storeitem.save()
+							return Response(status=status.HTTP_200_OK)
+				except StoreItem.DoesNotExist:
+					return Response({"message": "Store Not Found"}, status=status.HTTP_403_FORBIDDEN)
+
+class CreateOrUpdateStoreItemsView2(APIView):
 	#Create a new item in store
-	def post(self, request,store_id=None,storeitem_id=None):
+	#Test Status - Complete
+	# Form Data - 'logo' key takes image file
+	# 'data' takes the JSON
+	'''
+		{
+    	"name": "SItem1",
+    	"price":20.10,
+    	"description": "My New item"
+	}
+	'''
+	parser_classes = (MultiPartParser, FormParser, JSONParser)
+	permission_classes = (IsAuthenticated,)
+	def post(self, request,store_id=None):
 		if store_id==None:
 			return Response({"message": "Not possible"}, status=status.HTTP_403_FORBIDDEN)
 		else:
@@ -275,33 +324,16 @@ class CreateOrUpdateStoreItemsView(APIView):
 			except Store.DoesNotExist:
 				return Response({"message": "Store ID Doesn't exist"}, status=status.HTTP_404_NOT_FOUND)
 
-	# Edit an item item in store
-	def put(self, request, store_id=None, storeitem_id=None):
-			if store_id == None or storeitem_id==None:
-				return Response({"message": "Not possible"}, status=status.HTTP_403_FORBIDDEN)
-			else:
-				# Verify ownership
-				try:
-					storeitem = StoreItem.objects.get(storeitem_id=storeitem_id)
-					if not storeitem.store.owner.id == request.user.id:
-						return Response({"message": "You don't own this"}, status=status.HTTP_403_FORBIDDEN)
-					else:
-						objj = CreateStoreItemSerializer(data=request.data)
-						if not objj.is_valid():
-							print(objj.errors)
-							return Response({"message": "Bad data"}, status=status.HTTP_403_FORBIDDEN)
-						else:
-							storeitem.name = objj.data['name']
-							storeitem.description = objj.data['description']
-							storeitem.price = objj.data['price']
-							storeitem.save()
-							return Response(status=status.HTTP_200_OK)
-				except StoreItem.DoesNotExist:
-					return Response({"message": "Store Not Found"}, status=status.HTTP_403_FORBIDDEN)
-
-
 class CartItemsView(APIView):
 	permission_classes = (IsAuthenticated,)
+	#Test Status - Complete
+	'''
+	{
+    	"storeID" : 1,
+    	"productID" : 1,
+    	"quantity": 0
+	}
+	'''
 	def post(self, request):
 		#Validate incoming request
 		#Validate Body
@@ -314,7 +346,7 @@ class CartItemsView(APIView):
 			try:
 				store = Store.objects.get(store_id=storeid)
 				product = StoreItem.objects.get(item_id=productid)
-				if product.store.store_id != store.id:
+				if product.store.store_id != store.store_id:
 					return Response({"message":"Product isn't owned by store"})
 				else:
 					usser = CustomUser.objects.get(id=request.user.id)
@@ -333,7 +365,12 @@ class CartItemsView(APIView):
 				print(e)
 				return Response({"message":"Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+	#Test Status - Complete
+	'''
+		{
+		"storeID": 1
+		}
+	'''
 	def get(self, request):
 		json = CartRequestSerializer(data=request.data)
 		if not json.is_valid():
@@ -352,10 +389,15 @@ class CartItemsView(APIView):
 
 
 class OrderProcess(APIView):
+	permission_classes = (IsAuthenticated,)
+
+	#Test Status - Complete
 	def post(self, request):
 		storeID = CartRequestSerializer(data=request.data)
+		if not storeID.is_valid():
+			return Response(storeID.errors, status=status.HTTP_400_BAD_REQUEST)
 		try:
-			store = Store.objects.get(store_id=storeID)
+			store = Store.objects.get(store_id=storeID.data['storeID'])
 			usser = CustomUser.objects.get(id=request.user.id)
 			cart = Cart.objects.get(store=store, user=usser)
 			cartitems = CartItems.objects.filter(cart=cart)
@@ -375,6 +417,7 @@ class OrderProcess(APIView):
 					orderitem.added = False
 					orderitem.price = cartitem.item.price
 					orderitem.save()
+				cart.delete()
 				return Response({"message":"Done"},status=status.HTTP_200_OK)
 		except Store.DoesNotExist:
 			return Response({"message":"Store doesn't exist"},status=status.HTTP_400_BAD_REQUEST)
