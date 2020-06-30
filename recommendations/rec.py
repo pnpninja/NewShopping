@@ -2,6 +2,22 @@ import pandas as pd
 import numpy as np
 import turicreate as tc
 
+"""
+Get best k product recommendations for a user.
+
+Parameters
+--------------------
+    data             -- pandas dataframe, consisting of purchase count for every (purchased item, user) pair in a particular store
+    user_column      -- string, name of the column in the dataframe corresponding to unique user_ids
+    item_column      -- string, name of the column in the dataframe corresponding to unique product_ids
+    freq_column      -- string, name of the column in the dataframe corresponding to purchase count
+    k                -- int, number of recommendations
+    user_id          -- string, user for whom recommendations are to be made
+
+Returns
+--------------------
+    recommended_items  -- list of k item_ids as recommendations
+"""
 def get_best_k_items(data, user_column, item_column, freq_column, k, user_id):
   # user-item interactions table
   interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=item_column)
@@ -21,3 +37,5 @@ def get_best_k_items(data, user_column, item_column, freq_column, k, user_id):
   recommended_items=[ a for a in recommendation[item_column]
   
   return recommended_items
+  
+
