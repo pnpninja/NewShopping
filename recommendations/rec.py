@@ -2,6 +2,32 @@ import pandas as pd
 import numpy as np
 import turicreate as tc
 
+def interleave(similarity_recommended_items, popularity_recommended_items):
+  result=[]
+  ratio=int(similarity_recommended_items/popularity_recommended_items)
+  similarity_index=0
+  popularity_index=0
+  current=1
+  
+  while(similarity_index<len(similarity_recommended_items) and popularity_index<len(popularity_recommended_items)):
+    if(current%ratio==0):
+      result.append(popularity_recommended_items[popularity_index])
+      popularity_index+=1
+    else:
+      result.append(similarity_recommended_items[similarity_index])
+      similarity_index+=1
+    current+=1
+  
+  while(similarity_index<len(similarity_recommended_items)):
+    result.append(similarity_recommended_items[similarity_index])
+    similarity_index+=1
+  
+  while(popularity_index<len(popularity_recommended_items)):
+    result.append(popularity_recommended_items[popularity_index])
+    popularity_index+=1
+  
+  return result
+
 """
 Get best k product recommendations for a user.
 
