@@ -108,9 +108,33 @@ def get_best_k_merchants(data, user_column, merchant_column, freq_column, k, use
   
   popularity_recommendation=popularity_recommender.recommend(users=user_id, k=popularity_k, verbose=False)
 
-  similarity_recommended_items=[ a for a in similarity_recommendation[merchant_column]
-  popularity_recommended_items=[ a for a in popularity_recommendation[merchant_column]
+  similarity_recommended_items=[ a for a in similarity_recommendation[merchant_column]]
+  popularity_recommended_items=[ a for a in popularity_recommendation[merchant_column]]
   
   recommended_items=interleave(similarity_recommended_items, popularity_recommended_items)
 
   return recommended_items
+  
+def main():
+  # sample usage
+  data= pd.read_csv('music_data.csv', usecols=['userId','artistId','plays'], encoding= 'unicode_escape')
+  artist_data= pd.read_csv('music_data.csv', usecols=['artistId','artist'], encoding= 'unicode_escape')
+  
+  user_column='userId'
+  artist_column='artistId'
+  plays_column='plays'
+  user_id=data[user_column].unique()[0] # example user
+  recommendations= get_best_k_items(data, user_column=user_column, item_column=artist_column, freq_column=plays_column, k=10, user_id=user_id)
+  
+  # map artist names
+  artistId_to_artistName={}
+  artists=artist_data.artistId.unique()
+  for a in artists:
+    artistId_to_artistName[a]=artist_data.loc[artist_data['artistId']==a, 'artist'].unique()[0]
+    
+  recommended_artists=[artistId_to_artistName[a] for a in recommendations]
+  print(recommended_artists)
+  
+
+if __name__ == '__main__':
+  main()
