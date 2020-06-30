@@ -134,14 +134,14 @@ STATIC_URL = '/static/'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 
-AUTHENTICATION_BACKENDS = (
+AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
-)
+]
 
 SITE_ID = 1
 
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = False
 ACCOUNT_USERNAME_REQUIRED = False
 
 REST_FRAMEWORK = {
@@ -151,4 +151,3 @@ REST_FRAMEWORK = {
 
 MEDIA_URL = '/'
 MEDIA_ROOT = '/Users/prateek/Workspace/NewShopping'
-

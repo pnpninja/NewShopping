@@ -54,6 +54,8 @@ class Store(models.Model):
 	thursdayOpen = models.BooleanField(default=False)
 	fridayOpen = models.BooleanField(default=False)
 	saturdayOpen = models.BooleanField(default=False)
+	latitude = models.DecimalField(max_digits=9, decimal_places=6)
+	longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
 	def image_tag(self):
 		from django.utils.html import escape

@@ -11,18 +11,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
 class StoreSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Store
-		fields = ('store_id','owner','name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+		fields = ('store_id','owner','name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen','latitude','longitude')
 		read_only_fields = ['store_id']
 
 class UpdateStoreSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Store
-		fields = ('name','description','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+		fields = ('name','description','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen','latitude','longitude')
 
 class CreateStoreSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Store
-		fields = ('name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen')
+		fields = ('name','description','logo','contactNumber','start','end','sundayOpen','mondayOpen','tuesdayOpen','wednesdayOpen','thursdayOpen','fridayOpen','saturdayOpen','latitude','longitude')
 
 class StoreItemSerializer(serializers.ModelSerializer):
 	class Meta:
