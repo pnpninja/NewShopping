@@ -37,7 +37,7 @@ def recommendItemsInStore(user_id, store_id, k):
   recommendations= get_best_k_items(data, user_column=user_column, item_column=item_column, freq_column=freq_column, k=k, user_id=user_id)
   rec_dict={};
   rec_dict["recommendations"]=recommendations
-  response_recommendations=json.dumps(rec_dict)
+  response_recommendations=rec_dict
   return response_recommendations
 
 

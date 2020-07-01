@@ -33,7 +33,7 @@ def interleave(similarity_recommended_items, popularity_recommended_items):
 def check_coldstart(data, user_column, product_column, freq_column, k, user_id):
   if(len(data[product_column].unique())<k):
     return True
-  if(len(data.loc[data[user_column]==user_id, product_column].unique())<int(k/3)):
+  if(len(data.loc[data[user_column]==user_id, product_column].unique())<k/3):
     return True
   return False
   
@@ -50,8 +50,7 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
 #  training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
 #  user_id=[user_id]
   
-  k=min(k,len(data[product_colu
-  mn].unique()))
+  k=min(k,len(data[product_column].unique()))
   
 #  popularity_k= max(1,int(k/2)+1)
 #  popularity_recommender= tc.recommender.popularity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=product_column, target=freq_column, verbose=False)
@@ -105,8 +104,10 @@ def get_best_k_items(data, user_column, item_column, freq_column, k, user_id):
   interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=item_column)
   
   # normalize [0-1]
-  interactions= (interactions-np.min(np.min(interactions)))/(np.max(np.max(interactions))-np.min(np.min(interactions)))
-  
+  if np.min(np.min(interactions)) == np.max(np.max(interactions)):
+    interactions = interactions / float(np.sum(np.sum(interactions)))
+  else:
+    interactions= (interactions-np.min(np.min(interactions)))/(np.max(np.max(interactions))-np.min(np.min(interactions)))
   # create dummy id, in order to columnize userId
   training_data=interactions.reset_index()
   training_data.index.names = [freq_column]
