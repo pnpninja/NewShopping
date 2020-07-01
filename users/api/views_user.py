@@ -167,6 +167,8 @@ class StoreDetailView(APIView):
 			newStore.saturdayOpen = objj.data['saturdayOpen']
 			newStore.owner = request.user
 			newStore.logo = img
+			newStore.latitude = objj.data['latitude']
+			newStore.longitude = objj.data['longitude']
 			newStore.save()
 			return Response(status=status.HTTP_200_OK)
 		except Exception as e:
@@ -203,7 +205,7 @@ class StoreItemImageChangeView(APIView):
 			return Response({"message":"That's an illegal move"}, status=status.HTTP_403_FORBIDDEN)
 		else:
 			try:
-				storeData = StoreItem.objects.get(storeitem_id=storeitem_id)
+				storeData = StoreItem.objects.get(item_id=storeitem_id)
 				if(storeData.store.owner.id != request.user.id):
 					return Response({"message":"User doesn't own the store"}, status=status.HTTP_403_FORBIDDEN)
 				else:

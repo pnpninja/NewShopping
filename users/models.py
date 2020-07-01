@@ -103,6 +103,8 @@ class Order(models.Model):
 	user = models.ForeignKey(CustomUser, on_delete = models.CASCADE)
 	store = models.ForeignKey(Store, on_delete = models.CASCADE)
 	created_at = models.DateTimeField(auto_now_add=True, blank=True)
+	parking_spot = models.TextField(blank=True,default=None)
+	pickupTime = models.DateTimeField(blank=True,default=None)
 
 class OrderItems(models.Model):
 	orderItem_id = models.AutoField(primary_key=True)
