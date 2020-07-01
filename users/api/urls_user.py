@@ -12,7 +12,7 @@ urlpatterns = [
 	path('stores/<int:store_id>/item', CreateOrUpdateStoreItemsView2.as_view(), name='Hello7'),
 	path('cart',CartItemsView.as_view(), name='Hello6'),
 	path('doOrder',OrderProcess.as_view(),name='Hello 7'),
-	path('itemRecommendation/<int:nos_recommendations>',RecommendationView.as_view(),name='Hello 7'),
+	path('itemRecommendation/<int:store_id>/<int:nos_recommendations>',RecommendationView.as_view(),name='Hello 7'),
 	path('storeRecommendation/<int:nos_recommendations>',StoreRecommendationView.as_view(),name='Hello 8'),
 
 ]
