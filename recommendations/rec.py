@@ -38,19 +38,20 @@ def check_coldstart(data, user_column, product_column, freq_column, k, user_id):
   return False
   
 def get_coldstart_recommendation(data, user_column, product_column, freq_column, k, user_id):
-  # user-merchant interactions table
-  interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=product_column)
-
-  # normalize [0-1]
-  interactions= (interactions-np.min(np.min(interactions)))/(np.max(np.max(interactions))-np.min(np.min(interactions)))
-
-  # create dummy id, in order to columnize userId
-  training_data=interactions.reset_index()
-  training_data.index.names = [freq_column]
-  training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
-  user_id=[user_id]
+#  # user-merchant interactions table
+#  interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=product_column)
+#
+#  # normalize [0-1]
+#  interactions= (interactions-np.min(np.min(interactions)))/(np.max(np.max(interactions))-np.min(np.min(interactions)))
+#
+#  # create dummy id, in order to columnize userId
+#  training_data=interactions.reset_index()
+#  training_data.index.names = [freq_column]
+#  training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
+#  user_id=[user_id]
   
-  k=min(k,len(data[product_column].unique()))
+  k=min(k,len(data[product_colu
+  mn].unique()))
   
 #  popularity_k= max(1,int(k/2)+1)
 #  popularity_recommender= tc.recommender.popularity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=product_column, target=freq_column, verbose=False)
