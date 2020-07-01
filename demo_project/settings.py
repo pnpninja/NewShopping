@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'phone_field',
     'phonenumber_field',
     'users',
-    'pages'
+    'pages',
 ]
 
 AUTH_USER_MODEL = 'users.CustomUser' # new
@@ -141,7 +141,7 @@ AUTHENTICATION_BACKENDS = [
 
 SITE_ID = 1
 
-ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 
 REST_FRAMEWORK = {

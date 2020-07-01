@@ -1,5 +1,5 @@
 from django.urls import include,path
-from .views_user import PersonalUserDetailView, StoreDetailView, StoreImageChangeView, StoreItemsView, CreateOrUpdateStoreItemsView, StoreItemImageChangeView, CartItemsView, CreateOrUpdateStoreItemsView2, OrderProcess
+from .views_user import PersonalUserDetailView, StoreDetailView, StoreImageChangeView, StoreItemsView, CreateOrUpdateStoreItemsView, StoreItemImageChangeView, CartItemsView, CreateOrUpdateStoreItemsView2, OrderProcess, RecommendationView, StoreRecommendationView
 
 urlpatterns = [
 	path('users/userdetails', PersonalUserDetailView.as_view(), name='hello'),
@@ -12,4 +12,7 @@ urlpatterns = [
 	path('stores/<int:store_id>/item', CreateOrUpdateStoreItemsView2.as_view(), name='Hello7'),
 	path('cart',CartItemsView.as_view(), name='Hello6'),
 	path('doOrder',OrderProcess.as_view(),name='Hello 7'),
+	path('itemRecommendation/<int:nos_recommendations>',RecommendationView.as_view(),name='Hello 7'),
+	path('storeRecommendation/<int:nos_recommendations>',StoreRecommendationView.as_view(),name='Hello 8'),
+
 ]

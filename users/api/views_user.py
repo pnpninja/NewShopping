@@ -9,6 +9,8 @@ from .serializers import CustomUserSerializer, UpdateUserSerializer, StoreSerial
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import json
+from recommendations import fetch_data
+
 from rest_framework.decorators import parser_classes
 from rest_framework.authtoken.models import Token
 from braces.views import CsrfExemptMixin
@@ -42,7 +44,7 @@ class PersonalUserDetailView(APIView):
 	'''
 	def post(self, request):
 		print(request.data)
-		userFromToken = CustomUser.objects.get(email=request.user.email)
+		userFromToken = CustomUser.objects.get(id=request.user.id)
 		userFromDataSerializer = UpdateUserSerializer(data=request.data)
 		if not userFromDataSerializer.is_valid():
 			return Response(userFromDataSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -141,7 +143,7 @@ class StoreDetailView(APIView):
 	}
 	'''
 	def post(self, request,store_id=None):
-		usser = CustomUser.objects.get(email=request.user.email)
+		usser = CustomUser.objects.get(id=request.user.id)
 		if(usser.role != "MERCHANT"):
 			return Response({"message":"That's an illegal move"},status=status.HTTP_403_FORBIDDEN)
 		try:
@@ -424,6 +426,22 @@ class OrderProcess(APIView):
 		except Cart.DoesNotExist:
 			return Response({"message":"Store doesn't exist"},status=status.HTTP_400_BAD_REQUEST)
 
+class RecommendationView(APIView):
+	permission_classes = (IsAuthenticated,)
+	def get(self, request, nos_recommendations=5):
+		try:
+			# call method
+			return Response(fetch_data.recommendItemsInStore(request.user.id,nos_recommendations),status=status.HTTP_200_OK)
+		except Exception as e:
+			print(e)
+			return Response(e.message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
+class StoreRecommendationView(APIView):
+	permission_classes = (IsAuthenticated,)
+	def get(self, request, nos_recommendations=5):
+		try:
+			# call method
+			return Response(fetch_data.recommendStore(request.user.id,nos_recommendations),status=status.HTTP_200_OK)
+		except Exception as e:
+			print(e)
+			return Response(e.message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
