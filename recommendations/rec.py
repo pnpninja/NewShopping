@@ -52,22 +52,31 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
   
   k=min(k,len(data[product_column].unique()))
   
-  popularity_k= max(1,int(k/2)+1)
-  popularity_recommender= tc.recommender.popularity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=product_column, target=freq_column, verbose=False)
+#  popularity_k= max(1,int(k/2)+1)
+#  popularity_recommender= tc.recommender.popularity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=product_column, target=freq_column, verbose=False)
+#
+#  popularity_recommendation=popularity_recommender.recommend(users=user_id, k=popularity_k, verbose=False)
+#  popularity_recommended_items=[ a for a in popularity_recommendation[product_column]]
+#
+#  random_k= max(0,k-popularity_k)
+#  remaining_items=[]
+#  for product in data[product_column].unique():
+#    if product not in popularity_recommended_items:
+#      remaining_items.append(product)
+#
+#  np.random.shuffle(np.array(remaining_items))
+#  random_recommended_items= remaining_items[0:random_k]
   
-  popularity_recommendation=popularity_recommender.recommend(users=user_id, k=popularity_k, verbose=False)
-  popularity_recommended_items=[ a for a in popularity_recommendation[product_column]]
-  
-  random_k= max(0,k-popularity_k)
   remaining_items=[]
   for product in data[product_column].unique():
-    if product not in popularity_recommended_items:
       remaining_items.append(product)
   
   np.random.shuffle(np.array(remaining_items))
-  random_recommended_items= remaining_items[0:random_k]
+  random_recommended_items= remaining_items[0:k]
   
-  return popularity_recommended_items+random_recommended_items
+#  return popularity_recommended_items+random_recommended_items
+  return random_recommended_items
+
 
 
 """
