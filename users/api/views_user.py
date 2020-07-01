@@ -428,10 +428,10 @@ class OrderProcess(APIView):
 
 class RecommendationView(APIView):
 	permission_classes = (IsAuthenticated,)
-	def get(self, request, nos_recommendations=5):
+	def get(self, request, store_id, nos_recommendations=5):
 		try:
 			# call method
-			return Response(fetch_data.recommendItemsInStore(request.user.id,nos_recommendations),status=status.HTTP_200_OK)
+			return Response(fetch_data.recommendItemsInStore(request.user.id,store_id,nos_recommendations),status=status.HTTP_200_OK)
 		except Exception as e:
 			print(e)
 			return Response(e.message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
