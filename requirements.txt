@@ -1,10 +1,8 @@
-pandas==0.25.3
 pytz==2019.3
-Werkzeug==0.16.0
 numpy==1.18.0
-django_braces==1.14.0
-Django==3.0.8
+Werkzeug==0.16.0
+pandas==0.25.3
 fastapi==0.58.1
 PyJWT==1.7.1
-djangorestframework==3.11.0
 turicreate==6.3
+users==1.0.dev0
