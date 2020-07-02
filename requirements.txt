@@ -10,13 +10,6 @@ click==7.1.2
 coremltools==3.3
 decorator==4.4.2
 defusedxml==0.6.0
-Django==3.0.8
-django-allauth==0.42.0
-django-braces==1.14.0
-django-geoposition==0.3.0
-django-phone-field==1.8.1
-django-phonenumber-field==4.0.0
-djangorestframework==3.11.0
 fastapi==0.58.1
 gast==0.3.3
 google-auth==1.18.0
