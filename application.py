@@ -129,12 +129,33 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     return user
 
+@app.post("/register")
+def register(email: str = Body(..., embed=True), password: str = Body(...,embed=True), first_name: str = Body(...,embed=True), last_name: str = Body(...,embed=True), phoneNumber: str = Body(...,embed=True)):
+    qry = "SELECT * FROM users_customuser WHERE email='{}'"
+    usr = sql.get_unique(qry.format(email))
+    if not usr is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email already registered",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        obj = dict()
+        obj['email'] = email
+        obj['username'] = email
+        obj['role'] = "CUSTOMER"
+        obj['password'] = sha256(password.encode("utf-8")).hexdigest()
+        obj['first_name'] = first_name
+        obj['last_name'] = last_name
+        obj['phoneNumber'] = phoneNumber
+        sql.add('users_customuser',obj)
+        return {"message":"Registered"}
 
 @app.post("/auth")
 def login(email: str = Body(..., embed=True), password: str = Body(..., embed=True)):
     qry = "SELECT * FROM users_customuser WHERE email='{}'"
     usr = sql.get_unique(qry.format(email))
-
+    print(usr)
     if not usr is None:
         pwd = sha256(password.encode("utf-8")).hexdigest()
         if not safe_str_cmp(pwd, usr.get("password")):
