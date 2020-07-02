@@ -11,9 +11,11 @@ import os
 import sqlite3
 import math
 import time as tme
+from fastapi.staticfiles import StaticFiles
+
 
 # UNCOMMENT ON MAC/LINUX
-from recommendations.rec import *
+# from recommendations.rec import *
 
 
 JWT_SECRET = "secret"
@@ -83,7 +85,7 @@ class SqlManager:
         return res
 
     def add(self, table, item):
-
+        
         val = ", ".join([r"'{}'".format(item.get(k)) for k in sorted(item.keys())])
         itm = ", ".join(sorted(item.keys()))
         self.run("INSERT INTO {} ({}) VALUES ({})".format(table, itm, val))
@@ -96,6 +98,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/store", StaticFiles(directory="store"), name="store")
 
 sql = SqlManager()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth")
@@ -129,12 +132,37 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     return user
 
+@app.post("/register")
+def register(email: str = Body(..., embed=True), password: str = Body(...,embed=True), first_name: str = Body(...,embed=True), last_name: str = Body(...,embed=True), phone_number: str = Body(...,embed=True)):
+    qry = "SELECT * FROM users_customuser WHERE email='{}'"
+    usr = sql.get_unique(qry.format(email))
+    if not usr is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email already registered",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        obj = dict()
+        obj['email'] = email
+        obj['username'] = email
+        obj['role'] = "CUSTOMER"
+        obj['password'] = sha256(password.encode("utf-8")).hexdigest()
+        obj['first_name'] = first_name
+        obj['last_name'] = last_name
+        obj['phoneNumber'] = phone_number
+        sql.add('users_customuser', obj)
+        qry = "SELECT * FROM users_customuser WHERE email='{}'"
+        usr = sql.get_unique(qry.format(email))
+
+        data = {"identity": usr.get("id"), "role": usr.get("role"), "exp": datetime.utcnow() + timedelta(86400)}
+        return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256")}
 
 @app.post("/auth")
 def login(email: str = Body(..., embed=True), password: str = Body(..., embed=True)):
     qry = "SELECT * FROM users_customuser WHERE email='{}'"
     usr = sql.get_unique(qry.format(email))
-
+    print(usr)
     if not usr is None:
         pwd = sha256(password.encode("utf-8")).hexdigest()
         if not safe_str_cmp(pwd, usr.get("password")):
@@ -165,8 +193,14 @@ def ongoing(current_user = Depends(get_current_user)):
 
 @app.get("/getStores")
 def stores(current_user = Depends(get_current_user)):
-    qry = f"SELECT store_id as id, name, latitude as lat, longitude as lng, address FROM users_store";
-    return sql.get(qry)
+    qry = f"SELECT store_id as id, name, latitude as lat, longitude as lng, description as desc, logo as image, contactNumber, start, end FROM users_store";
+
+    stores = sql.get(qry)
+    for store in stores:
+        store["start"] = datetime.strptime(store["start"], '%H:%M:%S').strftime("%I:%M %p")
+        store["end"] = datetime.strptime(store["end"], '%H:%M:%S').strftime("%I:%M %p")
+    return stores
+
 
 @app.get("/getStoreItems")
 def stores( 
