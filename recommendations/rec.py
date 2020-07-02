@@ -31,6 +31,8 @@ def interleave(similarity_recommended_items, popularity_recommended_items):
   
 # helper function to check for potential coldstart issues
 def check_coldstart(data, user_column, product_column, freq_column, k, user_id):
+  if data.empty:
+    return True
   if(len(data[product_column].unique())<k):
     return True
   if(len(data.loc[data[user_column]==user_id, product_column].unique())<k/3):
@@ -42,6 +44,8 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
   empty_list=[]
   if data.empty:
     return empty_list
+
+########### Implementation 1 ##################
 #  # user-merchant interactions table
 #  interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=product_column)
 #
@@ -53,9 +57,7 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
 #  training_data.index.names = [freq_column]
 #  training_data=pd.melt(training_data, id_vars=[user_column],value_name=freq_column).dropna()
 #  user_id=[user_id]
-  
-  k=min(k,len(data[product_column].unique()))
-  
+#
 #  popularity_k= max(1,int(k/2)+1)
 #  popularity_recommender= tc.recommender.popularity_recommender.create(tc.SFrame(training_data), user_id=user_column, item_id=product_column, target=freq_column, verbose=False)
 #
@@ -70,16 +72,23 @@ def get_coldstart_recommendation(data, user_column, product_column, freq_column,
 #
 #  np.random.shuffle(np.array(remaining_items))
 #  random_recommended_items= remaining_items[0:random_k]
-  
+#  return popularity_recommended_items+random_recommended_items
+
+########### End of Implementation 1 ##################
+
+########### Implementation 2 ##################
+  k=min(k,len(data[product_column].unique()))
   remaining_items=[]
   for product in data[product_column].unique():
       remaining_items.append(product)
-  
+
   np.random.shuffle(np.array(remaining_items))
   random_recommended_items= remaining_items[0:k]
-  
-#  return popularity_recommended_items+random_recommended_items
+
+
   return random_recommended_items
+  
+########### End of Implementation 2 ##################
 
 
 
