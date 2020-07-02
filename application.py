@@ -214,7 +214,7 @@ def recItems(store_id: int, current_user = Depends(get_current_user)):
 
 @app.get("/getRecommendedStores")
 def recItems(current_user = Depends(get_current_user)):
-    qry = f"""SELECT user_id, store_id, COUNT(*) as order_count from users_order GROUP BY user_id, store_id;;"""
+    qry = f"""SELECT user_id, store_id, COUNT(*) as order_count from users_order GROUP BY user_id, store_id;"""
     
     data= pd.DataFrame(sql.get(qry))
     user_column='user_id'
@@ -223,8 +223,8 @@ def recItems(current_user = Depends(get_current_user)):
     k = 4
     user_id = current_user.get("id")
 
-    recommendations = get_best_k_items(data, user_column=user_column, merchant_column=merchant_column, freq_column=freq_column, k=k, user_id=user_id)
-
+    recommendations = get_best_k_merchants(data, user_column=user_column, merchant_column=merchant_column, freq_column=freq_column, k=k, user_id=user_id)
+    recommendations=[int(r) for r in recommendations]
     return {"recommendations": recommendations}
 
 @app.get("/storeAvailability")
