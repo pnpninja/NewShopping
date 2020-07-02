@@ -130,7 +130,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 @app.post("/register")
-def register(email: str = Body(..., embed=True), password: str = Body(...,embed=True), first_name: str = Body(...,embed=True), last_name: str = Body(...,embed=True), phoneNumber: str = Body(...,embed=True)):
+def register(email: str = Body(..., embed=True), password: str = Body(...,embed=True), first_name: str = Body(...,embed=True), last_name: str = Body(...,embed=True), phone_number: str = Body(...,embed=True)):
     qry = "SELECT * FROM users_customuser WHERE email='{}'"
     usr = sql.get_unique(qry.format(email))
     if not usr is None:
@@ -147,7 +147,7 @@ def register(email: str = Body(..., embed=True), password: str = Body(...,embed=
         obj['password'] = sha256(password.encode("utf-8")).hexdigest()
         obj['first_name'] = first_name
         obj['last_name'] = last_name
-        obj['phoneNumber'] = phoneNumber
+        obj['phoneNumber'] = phone_number
         sql.add('users_customuser',obj)
         return {"message":"Registered"}
 
