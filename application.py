@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 
 # UNCOMMENT ON MAC/LINUX
-from recommendations.rec import *
+# from recommendations.rec import *
 
 
 JWT_SECRET = "secret"
@@ -355,7 +355,7 @@ def submitOrder(current_user=Depends(get_current_user), time: str = Body(..., em
 @app.get("/myLatestOrder")
 def getOrder(current_user=Depends(get_current_user)):
     order = sql.get(f"SELECT parking_number, pickup_slot, store_id FROM users_order WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
-    order["pickup_slot"] = datetime.fromtimestamp(order["pickup_slot"]).strftime("%B %d, %Y - %H:%M %p")
+    order["pickup_slot"] = datetime.fromtimestamp(order["pickup_slot"]).strftime("%B %d, %Y - %I:%M %p")
     order.update(sql.get(f"SELECT name as store_name, latitude as lat, longitude as lng from users_store WHERE store_id={order['store_id']}")[0])
     
     return order
