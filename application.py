@@ -248,7 +248,7 @@ def recItems(store_id: int, current_user = Depends(get_current_user)):
     cartItems = sql.get(f"SELECT b.item_id, b.quantity FROM users_cart as a INNER JOIN users_cartitems as b ON a.cart_id=b.cart_id WHERE a.store_id={store_id} AND a.user_id={current_user.get('id')}")
     recs = []
     for item_id in recommendations:
-        storeItem = sql.get(f"SELECT item_id as id, name, price, logo as image, description FROM users_storeitem WHERE item_id='{item_id}'")
+        storeItem = sql.get(f"SELECT item_id as id, name, price, logo as image, description FROM users_storeitem WHERE item_id='{item_id}'")[0]
         quant = 0
         for c_item in cartItems:
             if c_item["item_id"] == storeItem["id"]:
@@ -271,7 +271,18 @@ def recItems(current_user = Depends(get_current_user)):
 
     recommendations = get_best_k_merchants(data, user_column=user_column, merchant_column=merchant_column, freq_column=freq_column, k=k, user_id=user_id)
     recommendations=[int(r) for r in recommendations]
-    return {"recommendations": recommendations}
+    stores = []
+    for store_id in recommendations:
+        qry = f"""SELECT store_id as id, name, latitude as lat, longitude as lng, 
+                description as desc, logo as image, contactNumber, start, end 
+                FROM users_store WHERE store_id={store_id}""";
+
+        store = sql.get(qry)[0]
+        store["start"] = datetime.strptime(store["start"], '%H:%M:%S').strftime("%I:%M %p")
+        store["end"] = datetime.strptime(store["end"], '%H:%M:%S').strftime("%I:%M %p")
+        stores.append(store)
+
+    return {"recommendations": stores}
 
 @app.get("/storeAvailability")
 def availability(store_id: int, current_user=Depends(get_current_user)):
