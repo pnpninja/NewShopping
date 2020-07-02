@@ -62,6 +62,7 @@ tensorflow-estimator==2.2.0
 termcolor==1.1.0
 turicreate==6.3
 urllib3==1.25.9
+users==1.0.dev0
 uvicorn==0.11.5
 uvloop==0.14.0
 websockets==8.1

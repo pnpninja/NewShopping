@@ -98,7 +98,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/store", StaticFiles(directory="store"), name="store")
+app.mount("/store", StaticFiles(directory="./store"), name="store")
 
 sql = SqlManager()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth")
