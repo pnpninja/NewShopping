@@ -6,3 +6,5 @@ fastapi==0.58.1
 PyJWT==1.7.1
 turicreate==6.3
 users==1.0.dev0
+uvicorn
+gunicorn
