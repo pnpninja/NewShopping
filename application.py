@@ -315,8 +315,27 @@ def userCart(current_user=Depends(get_current_user)):
         storeItems = sql.get(f"SELECT a.item_id as id, b.name, b.price, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}")
         return {"store_id": store_id, "items": storeItems}
 
-        
 
+@app.post("/submitOrder")
+def submitOrder(current_user=Depends(get_current_user), time: str = Body(..., embed=True)):
+    cart = sql.get(f"SELECT cart_id, store_id from users_cart WHERE user_id={current_user.get('id')} ORDER BY last_modified DESC")
+    if not len(cart):
+        raise HTTPException(
+            status_code=400
+        )
+    else:
+        store_id = cart[0]["store_id"]
+        user_id = current_user.get('id')
+        timeUnix = tme.mktime(datetime.strptime(time, "%B %d, %Y - %H:%M").timetuple())
+        sql.add("users_order", {"store_id": store_id, "user_id": user_id, "pickup_slot": timeUnix, "is_complete": 0})
+
+@app.get("/myLatestOrder")
+def getOrder(current_user=Depends(get_current_user)):
+    order = sql.get(f"SELECT parking_number, pickup_slot, store_id FROM users_order WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
+    order["pickup_slot"] = datetime.fromtimestamp(order["pickup_slot"]).strftime("%B %d, %Y - %H:%M")
+    order.update(sql.get(f"SELECT name as store_name, latitude as lat, longitude as lng from users_store WHERE store_id={order['store_id']}")[0])
+    
+    return order
 
     
 
