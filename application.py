@@ -333,7 +333,8 @@ def submitOrder(current_user=Depends(get_current_user), time: str = Body(..., em
 def getOrder(current_user=Depends(get_current_user)):
     order = sql.get(f"SELECT parking_number, pickup_slot, store_id FROM users_order WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
     order["pickup_slot"] = datetime.fromtimestamp(order["pickup_slot"]).strftime("%B %d, %Y - %H:%M")
-    order["store_name"] = sql.get(f"SELECT name, latitude as lat, longitude as lng from users_store WHERE store_id={order['store_id']}")[0]
+    order.update(sql.get(f"SELECT name as store_name, latitude as lat, longitude as lng from users_store WHERE store_id={order['store_id']}")[0])
+    
     return order
 
     
