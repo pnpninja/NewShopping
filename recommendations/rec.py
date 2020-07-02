@@ -38,6 +38,10 @@ def check_coldstart(data, user_column, product_column, freq_column, k, user_id):
   return False
   
 def get_coldstart_recommendation(data, user_column, product_column, freq_column, k, user_id):
+
+  empty_list=[]
+  if data.empty:
+    return empty_list
 #  # user-merchant interactions table
 #  interactions=pd.pivot_table(data, values=freq_column, index=user_column, columns=product_column)
 #
