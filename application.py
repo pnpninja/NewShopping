@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 
 # UNCOMMENT ON MAC/LINUX
-from recommendations.rec import *
+# from recommendations.rec import *
 
 
 JWT_SECRET = "secret"
