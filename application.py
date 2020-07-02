@@ -156,7 +156,7 @@ def register(email: str = Body(..., embed=True), password: str = Body(...,embed=
         usr = sql.get_unique(qry.format(email))
 
         data = {"identity": usr.get("id"), "role": usr.get("role"), "exp": datetime.utcnow() + timedelta(86400)}
-        return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256")}
+        return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256"), "role": usr.get("role")}
 
 @app.post("/auth")
 def login(email: str = Body(..., embed=True), password: str = Body(..., embed=True)):
@@ -176,7 +176,7 @@ def login(email: str = Body(..., embed=True), password: str = Body(..., embed=Tr
         )
     
     data = {"identity": usr.get("id"), "role": usr.get("role"), "exp": datetime.utcnow() + timedelta(86400)}
-    return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256")}
+    return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256"), "role": usr.get("role")}
 
 @app.get("/me/det")
 def get_user(current_user = Depends(get_current_user)):
@@ -360,5 +360,36 @@ def getOrder(current_user=Depends(get_current_user)):
     
     return order
 
-    
+@app.post("/orderParking")
+def orderParking(current_user=Depends(get_current_user), parkingNum: int = Body(..., embed=True)):
+    sql.run(f"UPDATE users_order SET parking_number={parkingNum} WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
 
+@app.get("/orders")
+def get_orders(current_user=Depends(get_current_user)):
+    store_id = sql.get(f"SELECT store_id FROM users_store WHERE owner_id={current_user.get('id')}")[0]["store_id"]
+    curr_time = datetime.today()
+    curr_day = datetime(year=curr_time.year, month=curr_time.month, day=curr_time.day, hour=23, minute=59, second=59)
+    eod = tme.mktime(curr_day.timetuple())
+    orders = sql.get(f"SELECT b.id as user_id, b.first_name as first, b.last_name as last, a.order_id as id, a.parking_number as parkingSpot, a.pickup_slot as time FROM users_order as a INNER JOIN users_customuser as b ON a.user_id=b.id WHERE a.store_id={store_id} AND a.is_complete=0 AND a.pickup_slot < {eod}")
+    for order in orders:
+        order["time"] = datetime.fromtimestamp(order["time"]).strftime("%I:%M %p")
+        cart = sql.get(f"SELECT cart_id from users_cart WHERE user_id={order['user_id']} ORDER BY last_modified DESC")[0]["cart_id"]
+        order["items"] = sql.get(f"SELECT b.name as itemName, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}")
+
+    return orders
+
+@app.put("/markComplete")
+def markComplete(current_user=Depends(get_current_user), order_id: int = Body(..., embed=True)):
+    sql.run(f"UPDATE users_order SET is_complete=1 WHERE order_id={order_id}")
+
+@app.get("/storeSettings")
+def getStoreSettings(current_user=Depends(get_current_user)):
+    return sql.get(f"SELECT slotFreqMinutes as slotFrequency, slotCapacity FROM users_store WHERE owner_id={current_user.get('id')}")[0]
+
+@app.post('/storeFrequency')
+def storeFreq(current_user=Depends(get_current_user), slotFrequency: int = Body(..., embed=True)):
+    sql.run(f"UPDATE users_store SET slotFreqMinutes={slotFrequency} WHERE owner_id={current_user.get('id')}")
+
+@app.post('/storeCapacity')
+def storeCapacity(current_user=Depends(get_current_user), slotCapacity: int = Body(..., embed=True)):
+    sql.run(f"UPDATE users_store SET slotCapacity={slotCapacity} WHERE owner_id={current_user.get('id')}")
