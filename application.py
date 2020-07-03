@@ -362,7 +362,7 @@ def getOrder(current_user=Depends(get_current_user)):
 
 @app.post("/orderParking")
 def orderParking(current_user=Depends(get_current_user), parkingNum: int = Body(..., embed=True)):
-    sql.run(f"UPDATE users_order SET parking_number={parkingNum} WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
+    sql.run(f"UPDATE users_order SET parking_number={parkingNum} WHERE user_id={current_user.get('id')} AND is_complete=0")
 
 @app.get("/orders")
 def get_orders(current_user=Depends(get_current_user)):
