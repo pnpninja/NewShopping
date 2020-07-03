@@ -367,12 +367,12 @@ def orderParking(current_user=Depends(get_current_user), parkingNum: int = Body(
 @app.get("/orders")
 def get_orders(current_user=Depends(get_current_user)):
     store_id = sql.get(f"SELECT store_id FROM users_store WHERE owner_id={current_user.get('id')}")[0]["store_id"]
-    curr_time = datetime.today()
-    curr_day = datetime(year=curr_time.year, month=curr_time.month, day=curr_time.day, hour=23, minute=59, second=59)
-    eod = tme.mktime(curr_day.timetuple())
-    orders = sql.get(f"SELECT b.id as user_id, b.first_name as first, b.last_name as last, a.order_id as id, a.parking_number as parkingSpot, a.pickup_slot as time FROM users_order as a INNER JOIN users_customuser as b ON a.user_id=b.id WHERE a.store_id={store_id} AND a.is_complete=0 AND a.pickup_slot < {eod}")
+    # curr_time = datetime.today()
+    # curr_day = datetime(year=curr_time.year, month=curr_time.month, day=curr_time.day, hour=23, minute=59, second=59)
+    # eod = tme.mktime(curr_day.timetuple())
+    orders = sql.get(f"SELECT b.id as user_id, b.first_name as first, b.last_name as last, a.order_id as id, a.parking_number as parkingSpot, a.pickup_slot as time FROM users_order as a INNER JOIN users_customuser as b ON a.user_id=b.id WHERE a.store_id={store_id} AND a.is_complete=0")
     for order in orders:
-        order["time"] = datetime.fromtimestamp(order["time"]).strftime("%I:%M %p")
+        order["time"] = datetime.fromtimestamp(order["time"]).strftime("%B %d, %Y - %I:%M %p")
         cart = sql.get(f"SELECT cart_id from users_cart WHERE user_id={order['user_id']} ORDER BY last_modified DESC")[0]["cart_id"]
         order["items"] = sql.get(f"SELECT b.name as itemName, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}")
 
