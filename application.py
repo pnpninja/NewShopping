@@ -143,7 +143,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 @app.post(
     "/register",
     summary="To register a customer",
-    tags=["Authoriation"],
+    tags=["Authorization"],
     response_model=AuthReponse,
     responses={
         401: {"description": "A user with the given email is already registered"}
@@ -192,7 +192,7 @@ def register(register_data: RegisterData = Body(...)):
 
 @app.post(
     "/auth",
-    tags=["Authoriation"],
+    tags=["Authorization"],
     summary="To login a user",
     responses={
         401: {
@@ -325,7 +325,7 @@ def storeCategories(store_id: int = Query(..., title="The id of the store"), cur
     return [category["category"] for category in sql.get(qry)]
 
 
-@app.get("/getRecommendedItems")
+@app.get("/getRecommendedItems", tags=["Recommendations"])
 def recItems(store_id: int = Query(..., title="The id of the store"), current_user=Depends(get_current_user)):
     qry = f"""SELECT user_id, item_id, SUM(quantity) as purchase_count 
                 FROM users_order as a INNER JOIN users_orderitems as b 
@@ -368,7 +368,7 @@ def recItems(store_id: int = Query(..., title="The id of the store"), current_us
     return {"recommendations": recs}
 
 
-@app.get("/getRecommendedStores")
+@app.get("/getRecommendedStores", tags=["Recommendations"])
 def recItems(current_user=Depends(get_current_user)):
     qry = f"""SELECT user_id, store_id, COUNT(*) as order_count from users_order GROUP BY user_id, store_id;"""
 
@@ -404,7 +404,7 @@ def recItems(current_user=Depends(get_current_user)):
     return {"recommendations": stores}
 
 
-@app.get("/storeAvailability")
+@app.get("/storeAvailability", tags=["Availability"])
 def availability(store_id: int, current_user=Depends(get_current_user)):
     times = sql.get(
         f"SELECT start, end, slotFreqMinutes, slotCapacity FROM users_store WHERE store_id={store_id}"
@@ -445,7 +445,7 @@ def availability(store_id: int, current_user=Depends(get_current_user)):
     return avl
 
 
-@app.put("/modifyCart")
+@app.put("/modifyCart", tags=["Cart"])
 def modifyCart(
     store_id: int,
     itemId: int = Body(..., embed=True),
@@ -489,7 +489,7 @@ def modifyCart(
         )
 
 
-@app.get("/myLatestCart")
+@app.get("/myLatestCart", tags=["Cart"])
 def userCart(current_user=Depends(get_current_user)):
     cart = sql.get(
         f"SELECT cart_id, store_id from users_cart WHERE user_id={current_user.get('id')} ORDER BY last_modified DESC"
@@ -505,7 +505,7 @@ def userCart(current_user=Depends(get_current_user)):
         return {"store_id": store_id, "items": storeItems}
 
 
-@app.post("/submitOrder")
+@app.post("/submitOrder", tags=["Order"])
 def submitOrder(
     current_user=Depends(get_current_user), time: str = Body(..., embed=True)
 ):
@@ -529,7 +529,7 @@ def submitOrder(
         )
 
 
-@app.get("/myLatestOrder")
+@app.get("/myLatestOrder", tags=["Order"])
 def getOrder(current_user=Depends(get_current_user)):
     order = sql.get(
         f"SELECT parking_number, pickup_slot, store_id FROM users_order WHERE user_id={current_user.get('id')} AND is_complete=0"
@@ -546,7 +546,7 @@ def getOrder(current_user=Depends(get_current_user)):
     return order
 
 
-@app.post("/orderParking")
+@app.post("/orderParking", tags=["Order"])
 def orderParking(
     current_user=Depends(get_current_user), parkingNum: int = Body(..., embed=True)
 ):
@@ -555,7 +555,7 @@ def orderParking(
     )[0]
 
 
-@app.get("/orders")
+@app.get("/orders", tags=["Order"])
 def get_orders(current_user=Depends(get_current_user)):
     store_id = sql.get(
         f"SELECT store_id FROM users_store WHERE owner_id={current_user.get('id')}"
@@ -585,7 +585,7 @@ def get_orders(current_user=Depends(get_current_user)):
     return orders
 
 
-@app.put("/markComplete")
+@app.put("/markComplete", tags=["Order"])
 def markComplete(
     current_user=Depends(get_current_user), order_id: int = Body(..., embed=True)
 ):
@@ -599,7 +599,7 @@ def getStoreSettings(current_user=Depends(get_current_user)):
     )[0]
 
 
-@app.post("/storeFrequency")
+@app.post("/storeFrequency", tags=["Availability"])
 def storeFreq(
     current_user=Depends(get_current_user), slotFrequency: int = Body(..., embed=True)
 ):
@@ -608,7 +608,7 @@ def storeFreq(
     )
 
 
-@app.post("/storeCapacity")
+@app.post("/storeCapacity", tags=["Availability"])
 def storeCapacity(
     current_user=Depends(get_current_user), slotCapacity: int = Body(..., embed=True)
 ):
