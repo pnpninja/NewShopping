@@ -1,4 +1,5 @@
 from fastapi import FastAPI, status, Body, HTTPException, Depends, Path, Query
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 import json
@@ -12,17 +13,18 @@ import sqlite3
 import math
 import time as tme
 from fastapi.staticfiles import StaticFiles
+from models import *
+from typing import List
 
 
 # UNCOMMENT ON MAC/LINUX
-from recommendations.rec import *
+# from recommendations.rec import *
 
 
 JWT_SECRET = "secret"
 
 
 class SqlManager:
-
     def __init__(self):
 
         self.tmz = pytz.timezone("US/Pacific")
@@ -85,10 +87,11 @@ class SqlManager:
         return res
 
     def add(self, table, item):
-        
+
         val = ", ".join([r"'{}'".format(item.get(k)) for k in sorted(item.keys())])
         itm = ", ".join(sorted(item.keys()))
         self.run("INSERT INTO {} ({}) VALUES ({})".format(table, itm, val))
+
 
 app = FastAPI()
 app.add_middleware(
@@ -103,22 +106,26 @@ app.mount("/store", StaticFiles(directory="./store"), name="store")
 sql = SqlManager()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth")
 
-@app.get("/status",)
+
+@app.get(
+    "/status",
+    summary="A health check for the API.",
+    response_model=StatusServer,
+    tags=["Status"],
+)
 def health():
     return {"status": "online"}
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        payload = jwt.decode(
-            token, JWT_SECRET, algorithms=["HS256"]
-        )
-        
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+
         qry = "SELECT * FROM users_customuser WHERE id='{}'"
         user = sql.get_unique(qry.format(payload["identity"]))
 
@@ -132,8 +139,25 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     return user
 
-@app.post("/register")
-def register(email: str = Body(..., embed=True), password: str = Body(...,embed=True), first_name: str = Body(...,embed=True), last_name: str = Body(...,embed=True), phone_number: str = Body(...,embed=True)):
+
+@app.post(
+    "/register",
+    summary="To register a customer",
+    tags=["Authoriation"],
+    response_model=AuthReponse,
+    responses={
+        401: {"description": "A user with the given email is already registered"}
+    },
+)
+def register(register_data: RegisterData = Body(...)):
+    """
+        Only registers a customer (not a merchant).\n
+        Encodes password in the SHA256 encoding standard.\n
+        Returns the JWT token (calculated with the HS256 algorithm) with expiry of 1 week.
+    """
+    email, password, first_name, last_name, phone_number = jsonable_encoder(
+        register_data
+    )
     qry = "SELECT * FROM users_customuser WHERE email='{}'"
     usr = sql.get_unique(qry.format(email))
     if not usr is None:
@@ -144,25 +168,49 @@ def register(email: str = Body(..., embed=True), password: str = Body(...,embed=
         )
     else:
         obj = dict()
-        obj['email'] = email
-        obj['username'] = email
-        obj['role'] = "CUSTOMER"
-        obj['password'] = sha256(password.encode("utf-8")).hexdigest()
-        obj['first_name'] = first_name
-        obj['last_name'] = last_name
-        obj['phoneNumber'] = phone_number
-        sql.add('users_customuser', obj)
+        obj["email"] = email
+        obj["username"] = email
+        obj["role"] = "CUSTOMER"
+        obj["password"] = sha256(password.encode("utf-8")).hexdigest()
+        obj["first_name"] = first_name
+        obj["last_name"] = last_name
+        obj["phoneNumber"] = phone_number
+        sql.add("users_customuser", obj)
         qry = "SELECT * FROM users_customuser WHERE email='{}'"
         usr = sql.get_unique(qry.format(email))
 
-        data = {"identity": usr.get("id"), "role": usr.get("role"), "exp": datetime.utcnow() + timedelta(86400)}
-        return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256"), "role": usr.get("role")}
+        data = {
+            "identity": usr.get("id"),
+            "role": usr.get("role"),
+            "exp": datetime.utcnow() + timedelta(86400),
+        }
+        return {
+            "access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256"),
+            "role": usr.get("role"),
+        }
 
-@app.post("/auth")
-def login(email: str = Body(..., embed=True), password: str = Body(..., embed=True)):
+
+@app.post(
+    "/auth",
+    tags=["Authoriation"],
+    summary="To login a user",
+    responses={
+        401: {
+            "description": "The given email does not exist or the password doesn't match"
+        }
+    },
+    response_model=AuthReponse,
+)
+def login(login_data: LoginData = Body(...)):
+    """
+        Valid for either merchants or customers.
+        Compares the password based on the SHA256 algorithm.
+        Returns the JWT token (calculated with the HS256 algorithm) with expiry of 1 week.
+    """
+    email, password = jsonable_encoder(login_data)
+
     qry = "SELECT * FROM users_customuser WHERE email='{}'"
     usr = sql.get_unique(qry.format(email))
-    print(usr)
     if not usr is None:
         pwd = sha256(password.encode("utf-8")).hexdigest()
         if not safe_str_cmp(pwd, usr.get("password")):
@@ -174,81 +222,142 @@ def login(email: str = Body(..., embed=True), password: str = Body(..., embed=Tr
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    data = {"identity": usr.get("id"), "role": usr.get("role"), "exp": datetime.utcnow() + timedelta(86400)}
-    return  {"access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256"), "role": usr.get("role")}
 
-@app.get("/me/det")
-def get_user(current_user = Depends(get_current_user)):
+    data = {
+        "identity": usr.get("id"),
+        "role": usr.get("role"),
+        "exp": datetime.utcnow() + timedelta(86400),
+    }
     return {
-        "role": current_user.get("role"), 
-        "email": current_user.get("email"), 
-        "name": f"{current_user.get('first_name')} {current_user.get('last_name')}" 
+        "access_token": jwt.encode(data, JWT_SECRET, algorithm="HS256"),
+        "role": usr.get("role"),
     }
 
-@app.get("/me/hasOngoing")
-def ongoing(current_user = Depends(get_current_user)):
-    qry = f"SELECT * from users_order WHERE user_id={current_user.get('id')} AND is_complete=0";
+
+@app.get(
+    "/me/det",
+    tags=["User Details"],
+    summary="To get the user details",
+    response_model=UserDet,
+)
+def get_user(current_user=Depends(get_current_user)):
+    return {
+        "role": current_user.get("role"),
+        "email": current_user.get("email"),
+        "name": f"{current_user.get('first_name')} {current_user.get('last_name')}",
+    }
+
+
+@app.get(
+    "/me/hasOngoing",
+    tags=["User Details"],
+    summary="To check if the user has an ongoing order",
+    response_model=UserDet,
+)
+def ongoing(current_user=Depends(get_current_user)):
+    """
+        Checks the database if the user has at least 1 order where is_complete=0
+    """
+    qry = f"SELECT * from users_order WHERE user_id={current_user.get('id')} AND is_complete=0"
     return {"hasOngoing": len(sql.get(qry)) > 0}
 
-@app.get("/getStores")
-def stores(current_user = Depends(get_current_user)):
-    qry = f"SELECT store_id as id, name, latitude as lat, longitude as lng, description as desc, logo as image, contactNumber, start, end FROM users_store";
+
+@app.get(
+    "/getStores",
+    tags=["Store Views"],
+    summary="Gets all the stores in the database",
+    response_model=List[Store],
+)
+def stores(current_user=Depends(get_current_user)):
+    """
+        Configures the start and end of each store to convert from UNIX time to user-friendly times.
+    """
+    qry = f"SELECT store_id as id, name, latitude as lat, longitude as lng, description as desc, logo as image, contactNumber, start, end FROM users_store"
 
     stores = sql.get(qry)
     for store in stores:
-        store["start"] = datetime.strptime(store["start"], '%H:%M:%S').strftime("%I:%M %p")
-        store["end"] = datetime.strptime(store["end"], '%H:%M:%S').strftime("%I:%M %p")
+        store["start"] = datetime.strptime(store["start"], "%H:%M:%S").strftime(
+            "%I:%M %p"
+        )
+        store["end"] = datetime.strptime(store["end"], "%H:%M:%S").strftime("%I:%M %p")
     return stores
 
 
-@app.get("/getStoreItems")
-def stores( 
-    store_id: int, 
-    category: str,
-    skip: int,
-    resPerPage: int = Query(8),
-    current_user = Depends(get_current_user)
+@app.get(
+    "/getStoreItems",
+    tags=["Store Views"],
+    summary="Gets all the stores items according to category and pagination variables",
+    response_model=ItemsResp,
+)
+def storeItems(
+    store_id: int = Query(..., title="The id of the store"),
+    category: str = Query(..., title="The category of items to get"),
+    skip: int = Query(..., title="The items to skip over (for pagination)."),
+    resPerPage: int = Query(8, title="The number of results per page (for pagination)"),
+    current_user=Depends(get_current_user),
 ):
-    cartItems = sql.get(f"SELECT b.item_id, b.quantity FROM users_cart as a INNER JOIN users_cartitems as b ON a.cart_id=b.cart_id WHERE a.store_id={store_id} AND a.user_id={current_user.get('id')}")
-    storeItems = sql.get(f"SELECT item_id as id, name, price, logo as image, description FROM users_storeitem WHERE store_id={store_id} AND category='{category}'")
+    """
+        Combines the store items with the user's cart items to get the quantity of each item.
+    """
+    cartItems = sql.get(
+        f"SELECT b.item_id, b.quantity FROM users_cart as a INNER JOIN users_cartitems as b ON a.cart_id=b.cart_id WHERE a.store_id={store_id} AND a.user_id={current_user.get('id')}"
+    )
+    storeItems = sql.get(
+        f"SELECT item_id as id, name, price, logo as image, description FROM users_storeitem WHERE store_id={store_id} AND category='{category}'"
+    )
     for item in storeItems:
         quant = 0
         for c_item in cartItems:
             if c_item["item_id"] == item["id"]:
                 quant = c_item["quantity"]
         item["quantity"] = quant
-    
-    return {"pageCount": math.ceil(len(storeItems) / resPerPage), "items": storeItems[skip: skip+resPerPage]}
 
-@app.get("/getStoreCategories")
-def storeCategories(store_id: int, current_user = Depends(get_current_user)):
+    return {
+        "pageCount": math.ceil(len(storeItems) / resPerPage),
+        "items": storeItems[skip : skip + resPerPage],
+    }
+
+
+@app.get("/getStoreCategories", summary="A list of the store's categories", response_model=List[str], tags=["Store Views"])
+def storeCategories(store_id: int = Query(..., title="The id of the store"), current_user=Depends(get_current_user)):
     qry = f"SELECT DISTINCT category FROM users_storeitem WHERE store_id={store_id}"
 
     return [category["category"] for category in sql.get(qry)]
 
+
 @app.get("/getRecommendedItems")
-def recItems(store_id: int, current_user = Depends(get_current_user)):
+def recItems(store_id: int = Query(..., title="The id of the store"), current_user=Depends(get_current_user)):
     qry = f"""SELECT user_id, item_id, SUM(quantity) as purchase_count 
                 FROM users_order as a INNER JOIN users_orderitems as b 
                 ON a.order_id=b.order_id 
                 WHERE store_id={store_id}
                 GROUP BY user_id, item_id;"""
-    
-    data= pd.DataFrame(sql.get(qry))
-    user_column='user_id'
-    item_column='item_id' 
-    freq_column='purchase_count'
+
+    data = pd.DataFrame(sql.get(qry))
+    user_column = "user_id"
+    item_column = "item_id"
+    freq_column = "purchase_count"
     k = 4
     user_id = current_user.get("id")
 
-    recommendations = get_best_k_items(data, user_column=user_column, item_column=item_column, freq_column=freq_column, k=k, user_id=user_id)
-    recommendations=[int(r) for r in recommendations]
-    
-    cartItems = sql.get(f"SELECT b.item_id, b.quantity FROM users_cart as a INNER JOIN users_cartitems as b ON a.cart_id=b.cart_id WHERE a.store_id={store_id} AND a.user_id={current_user.get('id')}")
+    recommendations = get_best_k_items(
+        data,
+        user_column=user_column,
+        item_column=item_column,
+        freq_column=freq_column,
+        k=k,
+        user_id=user_id,
+    )
+    recommendations = [int(r) for r in recommendations]
+
+    cartItems = sql.get(
+        f"SELECT b.item_id, b.quantity FROM users_cart as a INNER JOIN users_cartitems as b ON a.cart_id=b.cart_id WHERE a.store_id={store_id} AND a.user_id={current_user.get('id')}"
+    )
     recs = []
     for item_id in recommendations:
-        storeItem = sql.get(f"SELECT item_id as id, name, price, logo as image, description FROM users_storeitem WHERE item_id='{item_id}'")[0]
+        storeItem = sql.get(
+            f"SELECT item_id as id, name, price, logo as image, description FROM users_storeitem WHERE item_id='{item_id}'"
+        )[0]
         quant = 0
         for c_item in cartItems:
             if c_item["item_id"] == storeItem["id"]:
@@ -258,138 +367,251 @@ def recItems(store_id: int, current_user = Depends(get_current_user)):
 
     return {"recommendations": recs}
 
+
 @app.get("/getRecommendedStores")
-def recItems(current_user = Depends(get_current_user)):
+def recItems(current_user=Depends(get_current_user)):
     qry = f"""SELECT user_id, store_id, COUNT(*) as order_count from users_order GROUP BY user_id, store_id;"""
-    
-    data= pd.DataFrame(sql.get(qry))
-    user_column='user_id'
-    merchant_column='store_id' 
-    freq_column='order_count'
+
+    data = pd.DataFrame(sql.get(qry))
+    user_column = "user_id"
+    merchant_column = "store_id"
+    freq_column = "order_count"
     k = 4
     user_id = current_user.get("id")
 
-    recommendations = get_best_k_merchants(data, user_column=user_column, merchant_column=merchant_column, freq_column=freq_column, k=k, user_id=user_id)
-    recommendations=[int(r) for r in recommendations]
+    recommendations = get_best_k_merchants(
+        data,
+        user_column=user_column,
+        merchant_column=merchant_column,
+        freq_column=freq_column,
+        k=k,
+        user_id=user_id,
+    )
+    recommendations = [int(r) for r in recommendations]
     stores = []
     for store_id in recommendations:
         qry = f"""SELECT store_id as id, name, latitude as lat, longitude as lng, 
                 description as desc, logo as image, contactNumber, start, end 
-                FROM users_store WHERE store_id={store_id}""";
+                FROM users_store WHERE store_id={store_id}"""
 
         store = sql.get(qry)[0]
-        store["start"] = datetime.strptime(store["start"], '%H:%M:%S').strftime("%I:%M %p")
-        store["end"] = datetime.strptime(store["end"], '%H:%M:%S').strftime("%I:%M %p")
+        store["start"] = datetime.strptime(store["start"], "%H:%M:%S").strftime(
+            "%I:%M %p"
+        )
+        store["end"] = datetime.strptime(store["end"], "%H:%M:%S").strftime("%I:%M %p")
         stores.append(store)
 
     return {"recommendations": stores}
 
+
 @app.get("/storeAvailability")
 def availability(store_id: int, current_user=Depends(get_current_user)):
-    times = sql.get(f"SELECT start, end, slotFreqMinutes, slotCapacity FROM users_store WHERE store_id={store_id}")[0]
-    orderSlots = sql.get(f"SELECT pickup_slot, COUNT(*) as cap FROM users_order WHERE pickup_slot>{int(tme.time())} AND store_id={store_id} GROUP BY pickup_slot")
+    times = sql.get(
+        f"SELECT start, end, slotFreqMinutes, slotCapacity FROM users_store WHERE store_id={store_id}"
+    )[0]
+    orderSlots = sql.get(
+        f"SELECT pickup_slot, COUNT(*) as cap FROM users_order WHERE pickup_slot>{int(tme.time())} AND store_id={store_id} GROUP BY pickup_slot"
+    )
     orderSlots = {item["pickup_slot"]: item["cap"] for item in orderSlots}
-    start, end = datetime.strptime(times["start"], '%H:%M:%S'), datetime.strptime(times["end"], '%H:%M:%S')
+    start, end = (
+        datetime.strptime(times["start"], "%H:%M:%S"),
+        datetime.strptime(times["end"], "%H:%M:%S"),
+    )
 
     avl = []
     curr_time = datetime.today()
     curr_day = datetime(year=curr_time.year, month=curr_time.month, day=curr_time.day)
     for i in range(5):
-        startDateTime = curr_day + timedelta(days=i, hours=start.hour, minutes=start.minute)
+        startDateTime = curr_day + timedelta(
+            days=i, hours=start.hour, minutes=start.minute
+        )
         endDateTime = curr_day + timedelta(days=i, hours=end.hour, minutes=end.minute)
         avl.append([])
 
         while startDateTime < endDateTime:
             unixTime = tme.mktime(startDateTime.timetuple())
-            if unixTime > (tme.time()+15*60) and (unixTime not in orderSlots or orderSlots[unixTime] < times["slotCapacity"]):
-                avl[i].append({"text": startDateTime.strftime("%I:%M %p"),"value": startDateTime.strftime("%B %d, %Y - %H:%M")})
+            if unixTime > (tme.time() + 15 * 60) and (
+                unixTime not in orderSlots
+                or orderSlots[unixTime] < times["slotCapacity"]
+            ):
+                avl[i].append(
+                    {
+                        "text": startDateTime.strftime("%I:%M %p"),
+                        "value": startDateTime.strftime("%B %d, %Y - %H:%M"),
+                    }
+                )
             startDateTime += timedelta(minutes=times["slotFreqMinutes"])
 
-    
     return avl
 
+
 @app.put("/modifyCart")
-def modifyCart(store_id: int, itemId: int=Body(..., embed=True), quant: int=Body(..., embed=True), current_user=Depends(get_current_user)):
-    cart = sql.get(f"SELECT cart_id from users_cart WHERE store_id={store_id} AND user_id={current_user.get('id')}")
+def modifyCart(
+    store_id: int,
+    itemId: int = Body(..., embed=True),
+    quant: int = Body(..., embed=True),
+    current_user=Depends(get_current_user),
+):
+    cart = sql.get(
+        f"SELECT cart_id from users_cart WHERE store_id={store_id} AND user_id={current_user.get('id')}"
+    )
     if len(cart):
         cart = cart[0]
-        sql.run(f"UPDATE users_cart SET last_modified={int(tme.time())} WHERE cart_id={cart.get('cart_id')}")
+        sql.run(
+            f"UPDATE users_cart SET last_modified={int(tme.time())} WHERE cart_id={cart.get('cart_id')}"
+        )
     else:
-        sql.add("users_cart", {"store_id": store_id, "user_id": current_user.get("id"), "last_modified": int(tme.time())})
-        cart = sql.get(f"SELECT cart_id from users_cart WHERE store_id={store_id} AND user_id={current_user.get('id')}")[0]
-    
+        sql.add(
+            "users_cart",
+            {
+                "store_id": store_id,
+                "user_id": current_user.get("id"),
+                "last_modified": int(tme.time()),
+            },
+        )
+        cart = sql.get(
+            f"SELECT cart_id from users_cart WHERE store_id={store_id} AND user_id={current_user.get('id')}"
+        )[0]
+
     cartId = cart.get("cart_id")
 
     if quant == 0:
-        sql.run(f"DELETE FROM users_cartitems WHERE cart_id={cartId} AND item_id={itemId}")
+        sql.run(
+            f"DELETE FROM users_cartitems WHERE cart_id={cartId} AND item_id={itemId}"
+        )
     elif quant == 1:
-        sql.add("users_cartitems", {"cart_id": cartId, "item_id": itemId, "quantity": 1})
+        sql.add(
+            "users_cartitems", {"cart_id": cartId, "item_id": itemId, "quantity": 1}
+        )
     else:
-        sql.run(f"UPDATE users_cartitems SET quantity={quant} WHERE cart_id={cartId} AND item_id={itemId}")
+        sql.run(
+            f"UPDATE users_cartitems SET quantity={quant} WHERE cart_id={cartId} AND item_id={itemId}"
+        )
+
 
 @app.get("/myLatestCart")
 def userCart(current_user=Depends(get_current_user)):
-    cart = sql.get(f"SELECT cart_id, store_id from users_cart WHERE user_id={current_user.get('id')} ORDER BY last_modified DESC")
+    cart = sql.get(
+        f"SELECT cart_id, store_id from users_cart WHERE user_id={current_user.get('id')} ORDER BY last_modified DESC"
+    )
     if not len(cart):
         return []
     else:
         store_id = cart[0]["store_id"]
         cart = cart[0]["cart_id"]
-        storeItems = sql.get(f"SELECT a.item_id as id, b.name, b.price, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}")
+        storeItems = sql.get(
+            f"SELECT a.item_id as id, b.name, b.price, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}"
+        )
         return {"store_id": store_id, "items": storeItems}
 
 
 @app.post("/submitOrder")
-def submitOrder(current_user=Depends(get_current_user), time: str = Body(..., embed=True)):
-    cart = sql.get(f"SELECT cart_id, store_id from users_cart WHERE user_id={current_user.get('id')} ORDER BY last_modified DESC")
+def submitOrder(
+    current_user=Depends(get_current_user), time: str = Body(..., embed=True)
+):
+    cart = sql.get(
+        f"SELECT cart_id, store_id from users_cart WHERE user_id={current_user.get('id')} ORDER BY last_modified DESC"
+    )
     if not len(cart):
-        raise HTTPException(
-            status_code=400
-        )
+        raise HTTPException(status_code=400)
     else:
         store_id = cart[0]["store_id"]
-        user_id = current_user.get('id')
+        user_id = current_user.get("id")
         timeUnix = tme.mktime(datetime.strptime(time, "%B %d, %Y - %H:%M").timetuple())
-        sql.add("users_order", {"store_id": store_id, "user_id": user_id, "pickup_slot": timeUnix, "is_complete": 0})
+        sql.add(
+            "users_order",
+            {
+                "store_id": store_id,
+                "user_id": user_id,
+                "pickup_slot": timeUnix,
+                "is_complete": 0,
+            },
+        )
+
 
 @app.get("/myLatestOrder")
 def getOrder(current_user=Depends(get_current_user)):
-    order = sql.get(f"SELECT parking_number, pickup_slot, store_id FROM users_order WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
-    order["pickup_slot"] = datetime.fromtimestamp(order["pickup_slot"]).strftime("%B %d, %Y - %I:%M %p")
-    order.update(sql.get(f"SELECT name as store_name, latitude as lat, longitude as lng from users_store WHERE store_id={order['store_id']}")[0])
-    
+    order = sql.get(
+        f"SELECT parking_number, pickup_slot, store_id FROM users_order WHERE user_id={current_user.get('id')} AND is_complete=0"
+    )[0]
+    order["pickup_slot"] = datetime.fromtimestamp(order["pickup_slot"]).strftime(
+        "%B %d, %Y - %I:%M %p"
+    )
+    order.update(
+        sql.get(
+            f"SELECT name as store_name, latitude as lat, longitude as lng from users_store WHERE store_id={order['store_id']}"
+        )[0]
+    )
+
     return order
 
+
 @app.post("/orderParking")
-def orderParking(current_user=Depends(get_current_user), parkingNum: int = Body(..., embed=True)):
-    sql.run(f"UPDATE users_order SET parking_number={parkingNum} WHERE user_id={current_user.get('id')} AND is_complete=0")[0]
+def orderParking(
+    current_user=Depends(get_current_user), parkingNum: int = Body(..., embed=True)
+):
+    sql.run(
+        f"UPDATE users_order SET parking_number={parkingNum} WHERE user_id={current_user.get('id')} AND is_complete=0"
+    )[0]
+
 
 @app.get("/orders")
 def get_orders(current_user=Depends(get_current_user)):
-    store_id = sql.get(f"SELECT store_id FROM users_store WHERE owner_id={current_user.get('id')}")[0]["store_id"]
+    store_id = sql.get(
+        f"SELECT store_id FROM users_store WHERE owner_id={current_user.get('id')}"
+    )[0]["store_id"]
     curr_time = datetime.today()
-    curr_day = datetime(year=curr_time.year, month=curr_time.month, day=curr_time.day, hour=23, minute=59, second=59)
+    curr_day = datetime(
+        year=curr_time.year,
+        month=curr_time.month,
+        day=curr_time.day,
+        hour=23,
+        minute=59,
+        second=59,
+    )
     eod = tme.mktime(curr_day.timetuple())
-    orders = sql.get(f"SELECT b.id as user_id, b.first_name as first, b.last_name as last, a.order_id as id, a.parking_number as parkingSpot, a.pickup_slot as time FROM users_order as a INNER JOIN users_customuser as b ON a.user_id=b.id WHERE a.store_id={store_id} AND a.is_complete=0 AND a.pickup_slot < {eod}")
+    orders = sql.get(
+        f"SELECT b.id as user_id, b.first_name as first, b.last_name as last, a.order_id as id, a.parking_number as parkingSpot, a.pickup_slot as time FROM users_order as a INNER JOIN users_customuser as b ON a.user_id=b.id WHERE a.store_id={store_id} AND a.is_complete=0 AND a.pickup_slot < {eod}"
+    )
     for order in orders:
         order["time"] = datetime.fromtimestamp(order["time"]).strftime("%I:%M %p")
-        cart = sql.get(f"SELECT cart_id from users_cart WHERE user_id={order['user_id']} ORDER BY last_modified DESC")[0]["cart_id"]
-        order["items"] = sql.get(f"SELECT b.name as itemName, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}")
+        cart = sql.get(
+            f"SELECT cart_id from users_cart WHERE user_id={order['user_id']} ORDER BY last_modified DESC"
+        )[0]["cart_id"]
+        order["items"] = sql.get(
+            f"SELECT b.name as itemName, b.logo as image, a.quantity FROM users_cartitems as a INNER JOIN users_storeitem as b ON a.item_id=b.item_id WHERE a.cart_id={cart}"
+        )
 
     return orders
 
+
 @app.put("/markComplete")
-def markComplete(current_user=Depends(get_current_user), order_id: int = Body(..., embed=True)):
+def markComplete(
+    current_user=Depends(get_current_user), order_id: int = Body(..., embed=True)
+):
     sql.run(f"UPDATE users_order SET is_complete=1 WHERE order_id={order_id}")
+
 
 @app.get("/storeSettings")
 def getStoreSettings(current_user=Depends(get_current_user)):
-    return sql.get(f"SELECT slotFreqMinutes as slotFrequency, slotCapacity FROM users_store WHERE owner_id={current_user.get('id')}")[0]
+    return sql.get(
+        f"SELECT slotFreqMinutes as slotFrequency, slotCapacity FROM users_store WHERE owner_id={current_user.get('id')}"
+    )[0]
 
-@app.post('/storeFrequency')
-def storeFreq(current_user=Depends(get_current_user), slotFrequency: int = Body(..., embed=True)):
-    sql.run(f"UPDATE users_store SET slotFreqMinutes={slotFrequency} WHERE owner_id={current_user.get('id')}")
 
-@app.post('/storeCapacity')
-def storeCapacity(current_user=Depends(get_current_user), slotCapacity: int = Body(..., embed=True)):
-    sql.run(f"UPDATE users_store SET slotCapacity={slotCapacity} WHERE owner_id={current_user.get('id')}")
+@app.post("/storeFrequency")
+def storeFreq(
+    current_user=Depends(get_current_user), slotFrequency: int = Body(..., embed=True)
+):
+    sql.run(
+        f"UPDATE users_store SET slotFreqMinutes={slotFrequency} WHERE owner_id={current_user.get('id')}"
+    )
+
+
+@app.post("/storeCapacity")
+def storeCapacity(
+    current_user=Depends(get_current_user), slotCapacity: int = Body(..., embed=True)
+):
+    sql.run(
+        f"UPDATE users_store SET slotCapacity={slotCapacity} WHERE owner_id={current_user.get('id')}"
+    )
